@@ -59,10 +59,24 @@ frontend/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.11+
+- Poetry (Python dependency management)
 - PostgreSQL
 - Redis (for caching)
 - Celery (for background tasks)
+
+### Poetry Installation
+If you don't have Poetry installed:
+```bash
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Or using pip
+pip install poetry
+
+# Verify installation
+poetry --version
+```
 
 ### Backend Setup
 
@@ -72,17 +86,23 @@ git clone git@github.com:okpo65/matehub.git
 cd matehub
 ```
 
-2. **Set up Python environment**
+2. **Set up Python environment with Poetry**
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+
+# Install Poetry if you haven't already
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Activate virtual environment
+poetry shell
 ```
 
 3. **Configure environment variables**
 ```bash
-cp .env.example .env
+cp ops/.env.example .env
 # Edit .env with your database and API configurations
 ```
 
@@ -92,11 +112,15 @@ cp .env.example .env
 createdb matehub
 
 # Run migrations
-alembic upgrade head
+poetry run alembic upgrade head
 ```
 
 5. **Start the backend server**
 ```bash
+# Using Poetry
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Or if you're in the poetry shell
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -219,12 +243,48 @@ class ChatClient {
 - **Dynamic Updates**: Real-time configuration changes
 - **ID Management**: Easy switching between users, characters, and stories
 
+## 🔧 Development
+
+### Poetry Commands
+```bash
+# Install dependencies
+poetry install
+
+# Add new dependency
+poetry add package-name
+
+# Add development dependency
+poetry add --group dev package-name
+
+# Update dependencies
+poetry update
+
+# Show dependency tree
+poetry show --tree
+
+# Export requirements.txt (if needed)
+poetry export -f requirements.txt --output requirements.txt
+```
+
+### Environment Management
+```bash
+# Activate virtual environment
+poetry shell
+
+# Run commands in virtual environment
+poetry run python script.py
+poetry run uvicorn app.main:app --reload
+
+# Deactivate (when in shell)
+exit
+```
+
 ## 🧪 Testing
 
 ### Backend Testing
 ```bash
 cd backend
-python -m pytest tests/ -v
+poetry run pytest tests/ -v
 ```
 
 ### Frontend Testing
@@ -238,8 +298,9 @@ python -m pytest tests/ -v
 ### Backend Deployment
 1. Set up production database
 2. Configure environment variables
-3. Run database migrations
-4. Deploy with gunicorn or similar WSGI server
+3. Install dependencies with Poetry: `poetry install --only=main`
+4. Run database migrations: `poetry run alembic upgrade head`
+5. Deploy with gunicorn: `poetry run gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker`
 
 ### Frontend Deployment
 1. Build static assets (if using build tools)
