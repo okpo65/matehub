@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MateHub Chat Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Configuration Panel -->
+        <div class="config-panel" id="configPanel">
+            <div class="config-header">
+                <h2>Chat Configuration</h2>
+                <button id="toggleConfig" class="toggle-btn">Hide</button>
+            </div>
+            
+            <div class="config-content">
+                <!-- ID Selection Table -->
+                <div class="id-selection-section">
+                    <h3>ID Selection</h3>
+                    <div class="id-table-container">
+                        <table class="id-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Current ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>User ID</td>
+                                    <td><span id="currentUserId">1</span></td>
+                                    <td>
+                                        <input type="number" id="userIdInput" min="1" value="1">
+                                        <button onclick="updateId('user')">Update</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Character ID</td>
+                                    <td><span id="currentCharacterId">1</span></td>
+                                    <td>
+                                        <input type="number" id="characterIdInput" min="1" value="1">
+                                        <button onclick="updateId('character')">Update</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Story ID</td>
+                                    <td><span id="currentStoryId">1</span></td>
+                                    <td>
+                                        <input type="number" id="storyIdInput" min="1" value="1">
+                                        <button onclick="updateId('story')">Update</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Phrase ID</td>
+                                    <td><span id="currentPhraseId">1</span></td>
+                                    <td>
+                                        <input type="number" id="phraseIdInput" min="1" value="1">
+                                        <button onclick="updateId('phrase')">Update</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Model Configuration -->
+                <div class="model-config-section">
+                    <h3>Model Settings</h3>
+                    <div class="config-row">
+                        <label for="modelSelect">Model:</label>
+                        <select id="modelSelect">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- API Endpoints -->
+                <div class="api-section">
+                    <h3>API Actions</h3>
+                    <div class="api-buttons">
+                        <button id="testConnectionBtn" class="api-btn">Test Connection</button>
+                        <button id="clearChatBtn" class="api-btn">Clear Chat</button>
+                        <button id="exportChatBtn" class="api-btn">Export Chat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h1>MateHub AI Chat</h1>
+                <div class="header-controls">
+                    <div class="current-config">
+                        <span class="config-label">User: <span id="headerUserId">1</span></span>
+                        <span class="config-label">Character: <span id="headerCharacterId">1</span></span>
+                        <span class="config-label">Story: <span id="headerStoryId">1</span></span>
+                    </div>
+                    <div class="status-indicator">
+                        <span id="status-dot" class="status-dot"></span>
+                        <span id="status-text">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- Scroll Loading Indicator -->
+                <div class="scroll-loading-indicator" id="scrollLoadingIndicator" style="display: none;">
+                    <div style="text-align: center; padding: 10px; color: #666; font-size: 0.9em;">
+                        📥 Loading older messages...
+                    </div>
+                </div>
+                
+                <div class="message received welcome-message">
+                    <div class="message-content">
+                        👋 Welcome to MateHub! Configure your chat settings and start chatting with AI characters.
+                        <br><br>
+                        <strong>🎯 Smart Scrolling Features:</strong>
+                        <br>• <strong>Initial Load:</strong> Always loads latest messages and scrolls to bottom
+                        <br>• <strong>Send Message:</strong> Only scrolls if you were at bottom when sending
+                        <br>• <strong>Reading History:</strong> Won't interrupt you while reading older messages
+                        <br>• <strong>Auto History:</strong> Scroll to top to load older messages automatically
+                        <br><br>
+                        <strong>How it works:</strong>
+                        <br>• 🔄 Page refresh → Latest 20 messages → Auto scroll to bottom
+                        <br>• 💬 Send message at bottom → Response appears with auto scroll
+                        <br>• 📖 Send message while reading up → Response appears without scroll interruption
+                        <br>• 📜 Scroll to top → Older messages loaded automatically
+                        <br><br>
+                        <strong>💡 Smart Tip:</strong> The chat respects your reading position - no more interruptions!
+                    </div>
+                    <div class="message-footer">
+                        <div class="message-time">Smart Chat Ready</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Load More Button -->
+            <div class="load-more-container" style="text-align: center; padding: 10px; display: none;" id="loadMoreContainer">
+                <button id="loadMoreBtn" class="load-more-btn" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    Load More Messages
+                </button>
+            </div>
+            
+            <div class="chat-input-container">
+                <form id="messageForm" class="message-form">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Type your message..." 
+                        autocomplete="off"
+                        required
+                    >
+                    <button type="submit" id="sendButton">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="api-service.js"></script>
+    <script src="chat-client.js"></script>
+    <script src="script.js"></script>
+    
+    <!-- Uncomment the following lines to enable scroll testing -->
+    <!-- 
+    <script src="test-scroll-functionality.js"></script>
+    <script>
+        // Replace default chat client with scroll test version
+        window.chatClient = new ScrollTestChatClient();
+    </script>
+    -->
+</body>
+</html>
