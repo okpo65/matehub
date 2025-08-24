@@ -1,7 +1,6 @@
-from typing import Optional, Dict, Any, List
+from typing import Dict, List
 import logging
 from .client_factory import LLMClientFactory
-from .gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
 

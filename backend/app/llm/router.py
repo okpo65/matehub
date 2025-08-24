@@ -3,23 +3,20 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from app.llm.tasks import (
-    generate_text_llm
+    generate_text_llm,
+    generate_summarization
 )
 from app.llm.client_factory import LLMClientFactory
-from app.signin.router import verify_token
 from app.config import settings
-from celery_app import celery_app
-from celery.result import AsyncResult
-from app.database.chat_service import ChatService
-import json
-import asyncio
+from app.chat.chat_service import ChatService   
+
 
 router = APIRouter(prefix="/llm", tags=["LLM"])
 
 class LLMRequest(BaseModel):
     prompt: str
     model: Optional[str] = "llama3.2"
-    provider: Optional[str] = None  # Auto-detect if not specified
+    provider: Optional[str] = None
     max_tokens: Optional[int] = settings.max_tokens
     temperature: Optional[float] = 0.7
     system_prompt: Optional[str] = None
@@ -37,7 +34,7 @@ class ChatRequest(BaseModel):
     story_id: Optional[int] = None
 
     model: Optional[str] = "gemma3:12b"
-    provider: Optional[str] = None  # Auto-detect if not specified
+    provider: Optional[str] = None
 
 class ChatHistoryResponse(BaseModel):
     user_id: int
@@ -105,11 +102,9 @@ async def chat_with_llm(request: ChatRequest):
     try:
         print(f"Chat request received: {request}")
         
-        # Validate required fields
         if not request.message or not request.message.strip():
             raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        # Use default values for optional fields
         user_id = request.user_id or 1
         character_id = request.character_id or 1
         story_id = request.story_id or 1
@@ -121,14 +116,12 @@ async def chat_with_llm(request: ChatRequest):
         print(f"Request model: {request.model}")
         print(f"Final model: {model}")
         
-        # Initialize chat service with proper error handling
         try:
             chat_service = ChatService()
         except Exception as e:
             print(f"Failed to initialize ChatService: {e}")
             raise HTTPException(status_code=500, detail="Database connection failed")
 
-        # Add user message to database
         try:
             chat_service.add_message(
                 user_id=user_id,
@@ -142,17 +135,25 @@ async def chat_with_llm(request: ChatRequest):
             print("User message added to database")
         except Exception as e:
             print(f"Failed to add message to database: {e}")
-            # Continue without database - don't fail the entire request
             pass
 
-        # Build messages for LLM
+        try:
+            summary_task = generate_summarization.delay(
+                model='gemma3:12b',
+                user_id=user_id,
+                story_id=story_id
+            )
+            print(f"Summarization task submitted with ID: {summary_task.id}")    
+        except Exception as summary_error:
+            print(f"Failed to submit summarization task: {summary_error}")
+            pass
+
         messages = []
         
-        # Get character system prompt
         character = chat_service.get_character(character_id)
         messages.append({"role": "user", "content": f"{character.system_prompt}\n\n이제부터 위의 캐릭터로 완벽하게 연기하며 대화하세요."})
         messages.append({"role": "model", "content": f"네, 알겠습니다. 지금부터 {character.description} 역할로 대화하겠습니다."})
-        # Get chat history
+
         try:
             chat_history = chat_service.get_user_chat_history(user_id, story_id, max_count=5)
             if chat_history:
@@ -162,30 +163,25 @@ async def chat_with_llm(request: ChatRequest):
                 print(f"Added {len(chat_history)} messages from chat history")
         except Exception as e:
             print(f"Failed to get chat history: {e}")
-            # Continue without history
 
-        # Add current message
-        messages.append({"role": "user", "content": request.message})
-        
-        # Submit task to Celery
+        messages.append({"role": "user", "content": request.message})        
+
+        story_chat_history = chat_service.add_message(
+            user_id=user_id,
+            character_id=character_id,
+            story_id=story_id,
+            message="",
+            character_image_id=None,
+            message_type="text",
+            is_user_message=False
+        )
+        chat_service.add_story_chat_history_status(
+            story_chat_history_id=story_chat_history.id,
+            status="pending",
+            error_message=None,
+            elapsed_time=0
+        )
         try:
-            story_chat_history = chat_service.add_message(
-                user_id=user_id,
-                character_id=character_id,
-                story_id=story_id,
-                message="",
-                character_image_id=None,
-                message_type="text",
-                is_user_message=False
-            )
-            chat_service.add_story_chat_history_status(
-                story_chat_history_id=story_chat_history.id,
-                status="pending",
-                error_message=None,
-                elapsed_time=0
-            )
-
-            # Use appropriate task based on model
             task = generate_text_llm.delay(
                 messages=messages,
                 model=model,
@@ -201,12 +197,7 @@ async def chat_with_llm(request: ChatRequest):
         except Exception as e:
             print(f"Failed to submit Celery task: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to submit processing task: {str(e)}")
-            
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
+
     except Exception as e:
         print(f"Unexpected error in chat endpoint: {e}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

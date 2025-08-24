@@ -1,9 +1,7 @@
 import httpx
-import json
-import asyncio
-from typing import List, Dict, Any, Optional, AsyncGenerator
+from typing import List, Dict, Any
 from app.config import settings
-from app.llm.base_client import BaseLLMClient, ModelNotFoundError, GenerationError
+from app.llm.clients.base_client import BaseLLMClient, GenerationError
 import logging
 
 logger = logging.getLogger(__name__)

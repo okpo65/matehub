@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from app.database.schemas import BaseSchema, TimestampMixin
+from app.character.schemas import CharacterBaseSchema
 
 class ChatHistoryResponse(BaseModel):
     id: int
@@ -28,3 +30,14 @@ class ChatHistoryRequest(BaseModel):
     limit: int = 20
     cursor: Optional[int] = None
     direction: str = "before"
+
+
+# Chat Schemas
+class ChatBaseSchema(BaseSchema):
+    user_id: int
+    character_id: int
+    title: str
+    is_active: bool = True
+
+class ChatSchema(ChatBaseSchema, TimestampMixin):
+    character: Optional[CharacterBaseSchema] = None

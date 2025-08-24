@@ -2,14 +2,14 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database.connection import get_db
-from app.database.schemas import CharacterDetailResponse, CharacterImage, CharacterWithStories, CharacterProfileResponse
+from app.character.schemas import CharacterDetailResponse, CharacterImageSchema, CharacterWithStoriesSchema, CharacterProfileResponse
 from app.database.services import CharacterService
 
 
 
 router = APIRouter(prefix="/characters", tags=["characters"])
 
-@router.get("/", response_model=List[CharacterWithStories])
+@router.get("/", response_model=List[CharacterWithStoriesSchema])
 async def get_characters(
     is_popular: Optional[bool] = None,
     db: Session = Depends(get_db)
@@ -20,7 +20,7 @@ async def get_characters(
 async def get_character_detail(character_id: int, db: Session = Depends(get_db)):
     return CharacterService(db).get_character_story_detail(character_id)
 
-@router.get("/{character_id}/photos", response_model=List[CharacterImage])
+@router.get("/{character_id}/photos", response_model=List[CharacterImageSchema])
 async def get_character_photos(
     character_id: int,
     active_only: bool = Query(True),
@@ -32,7 +32,7 @@ async def get_character_photos(
 async def get_character_profile(character_id: int, db: Session = Depends(get_db)):
     return CharacterService(db).get_character_profile(character_id)
 
-@router.get("/popular", response_model=List[CharacterWithStories])
+@router.get("/popular", response_model=List[CharacterWithStoriesSchema])
 async def get_popular_characters(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)

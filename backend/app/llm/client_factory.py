@@ -1,7 +1,7 @@
 from typing import Dict, Type, Optional, List
-from app.llm.base_client import BaseLLMClient, ConfigurationError
-from app.llm.ollama_client import OllamaClient
-from app.llm.gemini_client import GeminiClient
+from app.llm.clients.base_client import BaseLLMClient, ConfigurationError
+from app.llm.clients.ollama_client import OllamaClient
+from app.llm.clients.gemini_client import GeminiClient
 from app.config import settings
 import logging
 

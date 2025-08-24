@@ -2,11 +2,11 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database.connection import get_db
-from app.database.schemas import (
-    StoryWithCharacter, 
+from app.character.schemas import (
+    StoryWithCharacterSchema, 
     StoryDetailResponse, 
-    StoryUserMatch,
-    StoryUserMatchCreate,
+    StoryUserMatchSchema,
+    StoryUserMatchCreateSchema,
     StoryListResponse
 )
 from app.database.services import StoryService, RelationshipQueryService
@@ -52,7 +52,7 @@ async def get_story_detail(story_id: int, db: Session = Depends(get_db)):
     
     return story
 
-@router.get("/character/{character_id}", response_model=List[StoryWithCharacter])
+@router.get("/character/{character_id}", response_model=List[StoryWithCharacterSchema])
 async def get_stories_by_character(
     character_id: int,
     active_only: bool = Query(True),
@@ -78,7 +78,7 @@ async def get_story_stats(story_id: int, db: Session = Depends(get_db)):
     
     return stats
 
-@router.post("/user-match", response_model=StoryUserMatchCreateResponse)
+@router.post("/user-match", response_model=StoryUserMatchSchema)
 async def create_story_user_match(
     request: CreateStoryUserMatchRequest,
     db: Session = Depends(get_db)
@@ -127,7 +127,7 @@ async def create_story_user_match(
         message="Story user match created successfully"
     )
 
-@router.get("/user-match/{user_id}", response_model=List[StoryWithCharacter])
+@router.get("/user-match/{user_id}", response_model=List[StoryWithCharacterSchema])
 async def get_user_story_matches(
     user_id: int,
     db: Session = Depends(get_db)

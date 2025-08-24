@@ -3,11 +3,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, and_
 from app.database.models import StoryChatHistory, User, ChatMessage, Character, StoryChatHistoryStatus
 from app.database.connection import get_db_session
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
-import json
+from typing import List, Optional
 from sqlalchemy import select
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +49,7 @@ class ChatService:
             logger.error(f"Error getting character {character_id}: {e}")
             return None
     
-    def get_user_chat_history(self, user_id: int, story_id: int, max_count: int = 10) -> List[StoryChatHistory]:
+    def get_user_chat_history(self, user_id: int, story_id: int, max_count: int = 10, offset: int = 0) -> List[StoryChatHistory]:
         """Get chat history for a user and story"""
         try:
             query = self.db.query(StoryChatHistory).filter(
@@ -58,7 +57,7 @@ class ChatService:
                 StoryChatHistory.story_id == story_id,
                 StoryChatHistory.is_active == True
             )
-            messages = query.order_by(StoryChatHistory.created_at.desc()).limit(max_count).all()
+            messages = query.order_by(StoryChatHistory.created_at.desc()).offset(offset).limit(max_count).all()
             
             return messages
         except Exception as e:
