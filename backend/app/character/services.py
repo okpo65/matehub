@@ -5,7 +5,7 @@ from app.database.models import Character, Story, StoryChatHistory, StoryUserMat
 from app.character.schemas import (
     CharacterWithStoriesSchema, CharacterDetailResponse, CharacterImageSchema, CharacterProfileResponse
 )
-from app.story.schemas import StoryWithRelationsSchema, StoryChatHistoryWithRelationsSchema, StoryDetailResponse
+from app.story.schemas import StoryWithRelationsSchema, StoryChatHistoryWithRelationsSchema, StoryDetailResponse, StoryWithCharacterSchema
 from app.database.connection import get_db_session
 
 
@@ -43,9 +43,9 @@ class CharacterService:
         )
             
         characters = query.all()
-        return [CharacterWithStoriesDB.model_validate(char) for char in characters]
+        return [CharacterWithStoriesSchema.model_validate(char) for char in characters]
 
-    def get_all_characters(self, limit: Optional[int] = None) -> List[CharacterWithStoriesDB]:
+    def get_all_characters(self, limit: Optional[int] = None) -> List[CharacterWithStoriesSchema]:
         """Get all characters with their stories (including inactive)"""
         query = (
             self.db.query(Character)
@@ -60,9 +60,9 @@ class CharacterService:
             query = query.limit(limit)
             
         characters = query.all()
-        return [CharacterWithStoriesDB.model_validate(char) for char in characters]
+        return [CharacterWithStoriesSchema.model_validate(char) for char in characters]
 
-    def get_character_with_stories(self, character_id: int) -> Optional[CharacterWithStoriesDB]:
+    def get_character_with_stories(self, character_id: int) -> Optional[CharacterWithStoriesSchema]:
         """Get character with all related stories using efficient loading"""
         character = (
             self.db.query(Character)
@@ -75,7 +75,7 @@ class CharacterService:
         )
         
         if character:
-            return CharacterWithStoriesDB.model_validate(character)
+            return CharacterWithStoriesSchema.model_validate(character)
         return None
 
     def get_character_story_detail(self, character_id: int) -> Optional[CharacterDetailResponse]:
@@ -109,7 +109,7 @@ class CharacterService:
             return CharacterProfileResponse.model_validate(character)
         return None
 
-    def get_character_photos(self, character_id: int, active_only: bool = True) -> List[CharacterImageDB]:
+    def get_character_photos(self, character_id: int, active_only: bool = True) -> List[CharacterImageSchema]:
         """Get all photos for a specific character"""
         query = self.db.query(CharacterImageModel).filter(CharacterImageModel.character_id == character_id)
         
@@ -117,9 +117,9 @@ class CharacterService:
             query = query.filter(CharacterImageModel.is_active == True)
         
         images = query.order_by(CharacterImageModel.offset).all()
-        return [CharacterImageDB.model_validate(img) for img in images]
+        return [CharacterImageSchema.model_validate(img) for img in images]
 
-    def get_popular_characters(self, limit: int = 10) -> List[CharacterWithStoriesDB]:
+    def get_popular_characters(self, limit: int = 10) -> List[CharacterWithStoriesSchema]:
         """Get popular characters with their stories"""
         characters = (
             self.db.query(Character)
@@ -133,13 +133,13 @@ class CharacterService:
             .all()
         )
         
-        return [CharacterWithStoriesDB.model_validate(char) for char in characters]
+        return [CharacterWithStoriesSchema.model_validate(char) for char in characters]
 
 class StoryService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_story_with_character(self, story_id: int) -> Optional[StoryWithCharacterDB]:
+    def get_story_with_character(self, story_id: int) -> Optional[StoryWithCharacterSchema]:
         """Get story with character information"""
         story = (
             self.db.query(Story)
@@ -151,7 +151,7 @@ class StoryService:
         )
         
         if story:
-            return StoryWithCharacterDB.model_validate(story)
+            return StoryWithCharacterSchema.model_validate(story)
         return None
 
     def get_story_detail(self, story_id: int) -> Optional[StoryDetailResponse]:
@@ -171,7 +171,7 @@ class StoryService:
             return StoryDetailResponse.model_validate(story)
         return None
 
-    def get_stories_by_character(self, character_id: int) -> List[StoryWithCharacterDB]:
+    def get_stories_by_character(self, character_id: int) -> List[StoryWithCharacterSchema]:
         """Get all stories for a specific character"""
         stories = (
             self.db.query(Story)
@@ -187,9 +187,9 @@ class StoryService:
             .all()
         )
         
-        return [StoryWithCharacterDB.model_validate(story) for story in stories]
+        return [StoryWithCharacterSchema.model_validate(story) for story in stories]
 
-    def get_user_story_matches(self, user_id: int) -> List[StoryWithCharacterDB]:
+    def get_user_story_matches(self, user_id: int) -> List[StoryWithCharacterSchema]:
         """Get all stories a user has matched with"""
         matches = (
             self.db.query(StoryUserMatch)
@@ -200,7 +200,7 @@ class StoryService:
             .all()
         )
         
-        return [StoryWithCharacterDB.model_validate(match.story) for match in matches]
+        return [StoryWithCharacterSchema.model_validate(match.story) for match in matches]
 
 class ChatHistoryService:
     def __init__(self, db: Session):
@@ -212,7 +212,7 @@ class ChatHistoryService:
         story_id: int, 
         limit: int = 20,
         cursor: Optional[int] = None
-    ) -> List[StoryChatHistoryWithRelationsDB]:
+    ) -> List[StoryChatHistoryWithRelationsSchema]:
         """Get chat history with all related information"""
         query = (
             self.db.query(StoryChatHistory)
@@ -236,14 +236,14 @@ class ChatHistoryService:
         
         messages = query.order_by(StoryChatHistory.id).limit(limit).all()
         
-        return [StoryChatHistoryWithRelationsDB.model_validate(msg) for msg in messages]
+        return [StoryChatHistoryWithRelationsSchema.model_validate(msg) for msg in messages]
 
     def get_latest_chat_with_character_info(
         self, 
         user_id: int, 
         story_id: int, 
         limit: int = 10
-    ) -> List[StoryChatHistoryWithRelationsDB]:
+    ) -> List[StoryChatHistoryWithRelationsSchema]:
         """Get latest chat messages with character and story information"""
         messages = (
             self.db.query(StoryChatHistory)
@@ -268,7 +268,7 @@ class ChatHistoryService:
         # Reverse to show oldest first
         messages.reverse()
         
-        return [StoryChatHistoryWithRelationsDB.model_validate(msg) for msg in messages]
+        return [StoryChatHistoryWithRelationsSchema.model_validate(msg) for msg in messages]
 
 class RelationshipQueryService:
     """Service for complex relationship queries"""

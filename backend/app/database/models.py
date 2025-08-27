@@ -18,12 +18,36 @@ class User(BaseModel):
     
     name = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
+    # Authentication fields
+    anonymous_user_id = Column(String(36), nullable=True, unique=True)  # UUID for anonymous users
+    kakao_id = Column(String(255), nullable=True, unique=True)  # Kakao user ID
+    email = Column(String(255), nullable=True)
+    nickname = Column(String(255), nullable=True)  # Kakao nickname
+    profile_image_url = Column(String(255), nullable=True)  # Kakao profile image
+    is_anonymous = Column(Boolean, default=True)
+    
+    # OAuth tokens
+    kakao_access_token = Column(Text, nullable=True)  # Kakao access token
+    kakao_refresh_token = Column(Text, nullable=True)  # Kakao refresh token
+    kakao_token_expires_at = Column(DateTime(timezone=True), nullable=True)  # Token expiration time
 
     # Relationships
     messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
     profiles = relationship("Profile", back_populates="user", cascade="all, delete-orphan")
     story_matches = relationship("StoryUserMatch", back_populates="user", cascade="all, delete-orphan")
     chat_histories = relationship("StoryChatHistory", back_populates="user", cascade="all, delete-orphan")
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+
+class UserSession(BaseModel):
+    __tablename__ = "user_sessions"
+    
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(String(36), nullable=False, unique=True)  # UUID for session
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    is_active = Column(Boolean, default=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="sessions")
 
 class Profile(BaseModel):
     __tablename__ = "profiles"

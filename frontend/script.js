@@ -6,19 +6,40 @@
 // Global variables
 let chatClient = null;
 let configPanelVisible = true;
+let kakaoAuth = null;
 
 /**
  * Initialize the application when DOM is loaded
  */
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM 로드 완료, 앱 초기화 시작...');
+    console.log('현재 URL:', window.location.href);
     initializeApp();
 });
 
 /**
  * Initialize the application
  */
-function initializeApp() {
+async function initializeApp() {
     try {
+        console.log('앱 초기화 시작...');
+        
+        // URL 파라미터를 먼저 확인하고 저장
+        const urlParams = new URLSearchParams(window.location.search);
+        const loginSuccess = urlParams.get('login_success');
+        const kakaoId = urlParams.get('kakao_id');
+        
+        console.log('초기화 시 URL 파라미터:', {
+            loginSuccess,
+            kakaoId,
+            fullUrl: window.location.href
+        });
+        
+        // Initialize Kakao auth first
+        kakaoAuth = new KakaoAuthClient();
+        await kakaoAuth.init();
+        kakaoAuth.setupEventListeners();
+        
         // Initialize chat client
         chatClient = new ChatClient();
         
@@ -27,6 +48,9 @@ function initializeApp() {
         
         // Setup API buttons
         setupApiButtons();
+        
+        // Load user info and update user ID if logged in
+        loadUserInfo();
         
         // Setup ID update functions
         setupIdUpdates();
@@ -42,21 +66,23 @@ function initializeApp() {
  * Setup configuration panel toggle
  */
 function setupConfigPanel() {
-    const toggleBtn = document.getElementById('toggleConfig');
-    const configPanel = document.getElementById('configPanel');
+    const toggleBtn = document.getElementById('toggleSidebar');
+    const sidebar = document.getElementById('sidebar');
     
-    if (toggleBtn && configPanel) {
+    if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', () => {
-            configPanelVisible = !configPanelVisible;
+            sidebar.classList.toggle('collapsed');
             
-            if (configPanelVisible) {
-                configPanel.classList.remove('hidden');
-                toggleBtn.textContent = 'Hide';
-            } else {
-                configPanel.classList.add('hidden');
-                toggleBtn.textContent = 'Show';
-            }
+            // Save sidebar state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
         });
+        
+        // Restore sidebar state from localStorage
+        const savedState = localStorage.getItem('sidebar-collapsed');
+        if (savedState === 'true') {
+            sidebar.classList.add('collapsed');
+        }
     }
 }
 
@@ -119,6 +145,15 @@ function setupApiButtons() {
 function setupIdUpdates() {
     // Make updateId function globally available
     window.updateId = (type) => {
+        // 카카오 로그인 사용자의 경우 User ID 변경 방지
+        if (type === 'user' && kakaoAuth && kakaoAuth.isUserLoggedIn()) {
+            const isAnonymous = localStorage.getItem('is_anonymous') === 'true';
+            if (!isAnonymous) {
+                alert('카카오 로그인 사용자는 User ID를 변경할 수 없습니다');
+                return;
+            }
+        }
+        
         const inputId = `${type}IdInput`;
         const currentId = `current${type.charAt(0).toUpperCase() + type.slice(1)}Id`;
         
@@ -128,7 +163,12 @@ function setupIdUpdates() {
         if (input && current) {
             const value = parseInt(input.value);
             if (chatClient.updateId(type, value)) {
-                current.textContent = value;
+                if (type === 'user') {
+                    // Update display based on login status
+                    updateUserIdDisplay(value);
+                } else {
+                    current.textContent = value;
+                }
                 input.value = value; // Reset input to valid value
             } else {
                 input.value = current.textContent; // Reset to current value
@@ -137,7 +177,7 @@ function setupIdUpdates() {
     };
     
     // Add Enter key support for ID inputs
-    ['user', 'character', 'story', 'phrase'].forEach(type => {
+    ['user', 'character', 'story'].forEach(type => {
         const input = document.getElementById(`${type}IdInput`);
         if (input) {
             input.addEventListener('keydown', (e) => {
@@ -147,6 +187,48 @@ function setupIdUpdates() {
             });
         }
     });
+}
+
+/**
+ * Update user ID display based on login status
+ */
+function updateUserIdDisplay(userId) {
+    const currentUserId = document.getElementById('currentUserId');
+    const headerUserId = document.getElementById('headerUserId');
+    
+    if (currentUserId) {
+        const isAnonymous = localStorage.getItem('is_anonymous') === 'true';
+        const urlParams = new URLSearchParams(window.location.search);
+        const loginSuccess = urlParams.get('login_success');
+        const kakaoId = urlParams.get('kakao_id');
+        
+        // Check if this is from Kakao login callback
+        if (loginSuccess === 'true' && kakaoId) {
+            currentUserId.innerHTML = `<span class="kakao-user-id">${kakaoId}</span> <span class="user-type-badge kakao">카카오 로그인됨</span>`;
+        } else if (isAnonymous) {
+            currentUserId.innerHTML = `<span class="anonymous-user-id">${userId}</span> <span class="user-type-badge anonymous">익명</span>`;
+        } else if (kakaoAuth?.currentUser?.kakao_id) {
+            const kakaoUserId = kakaoAuth.currentUser.kakao_id;
+            currentUserId.innerHTML = `<span class="kakao-user-id">${kakaoUserId}</span> <span class="user-type-badge kakao">카카오 로그인됨</span>`;
+        } else {
+            // Check if we have stored kakao user info
+            const storedKakaoUser = localStorage.getItem('kakao_user');
+            if (storedKakaoUser && !isAnonymous) {
+                try {
+                    const kakaoUser = JSON.parse(storedKakaoUser);
+                    currentUserId.innerHTML = `<span class="kakao-user-id">${kakaoUser.kakao_id}</span> <span class="user-type-badge kakao">카카오 로그인됨</span>`;
+                } catch (e) {
+                    currentUserId.innerHTML = `<span class="user-id">${userId}</span>`;
+                }
+            } else {
+                currentUserId.innerHTML = `<span class="user-id">${userId}</span>`;
+            }
+        }
+    }
+    
+    if (headerUserId) {
+        headerUserId.textContent = userId;
+    }
 }
 
 /**
@@ -207,16 +289,20 @@ window.addEventListener('unhandledrejection', (event) => {
  */
 window.debugUtils = {
     getChatClient: () => chatClient,
+    getKakaoAuth: () => kakaoAuth,
     getConfig: () => chatClient?.config,
     getHistory: () => chatClient?.conversationHistory,
     clearStorage: () => {
         localStorage.removeItem('matehub-config');
+        localStorage.removeItem('kakao_user');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('is_anonymous');
         location.reload();
     },
     testApi: async () => {
         if (!chatClient) return 'Chat client not initialized';
         try {
-            const health = await chatClient.apiService.checkLlmHealth();
+            const health = await chatClient.apiService.checkApiHealth();
             return health;
         } catch (error) {
             return { error: error.message };
@@ -224,12 +310,61 @@ window.debugUtils = {
     }
 };
 
+/**
+ * Load user info from localStorage and update UI
+ */
+function loadUserInfo() {
+    // First check if we have URL parameters from Kakao callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginSuccess = urlParams.get('login_success');
+    const kakaoId = urlParams.get('kakao_id');
+    
+    // If we have successful login parameters, use them
+    if (loginSuccess === 'true' && kakaoId) {
+        const userIdInput = document.getElementById('userIdInput');
+        
+        if (userIdInput) {
+            userIdInput.value = kakaoId;
+            
+            // Update display
+            updateUserIdDisplay(kakaoId);
+            
+            // Update chat client configuration
+            if (chatClient && chatClient.updateId) {
+                chatClient.updateId('user', kakaoId);
+            }
+        }
+        return;
+    }
+    
+    // Otherwise, check localStorage
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+        // Update user ID in the configuration
+        const userIdInput = document.getElementById('userIdInput');
+        
+        if (userIdInput) {
+            userIdInput.value = userId;
+            
+            // Update display
+            updateUserIdDisplay(userId);
+            
+            // Update chat client configuration
+            if (chatClient && chatClient.updateId) {
+                chatClient.updateId('user', userId);
+            }
+        }
+    }
+}
+
 // Export for potential module use
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         initializeApp,
         setupConfigPanel,
         setupApiButtons,
-        setupIdUpdates
+        setupIdUpdates,
+        loadUserInfo,
+        updateUserIdDisplay
     };
 }

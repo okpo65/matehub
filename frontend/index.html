@@ -8,16 +8,35 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Configuration Panel -->
-        <div class="config-panel" id="configPanel">
-            <div class="config-header">
+        <!-- Left Sidebar - Configuration Panel -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
                 <h2>Chat Configuration</h2>
-                <button id="toggleConfig" class="toggle-btn">Hide</button>
+                <button id="toggleSidebar" class="toggle-btn">
+                    <span class="toggle-icon">◀</span>
+                </button>
             </div>
             
-            <div class="config-content">
+            <div class="sidebar-content">
+                <!-- Login Section -->
+                <div class="config-section">
+                    <h3>Login Status</h3>
+                    <div class="login-status" id="loginStatus">
+                        <div class="user-info" id="userInfo" style="display: none;">
+                            <span class="user-name" id="userName">Loading...</span>
+                            <button id="logoutBtn" class="logout-btn">Logout</button>
+                        </div>
+                        <div class="login-buttons" id="loginButtons">
+                            <button id="kakaoLoginBtn" class="kakao-login-btn">
+                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDJDNS4wMjk0NCAyIDEgNS4xMzQwMSAxIDguOTk5OTlDMSAxMS4zNjU5IDIuMzY1OTQgMTMuNDMzOSA0LjQ0Mzc1IDE0LjU2MjVMMy41NjI1IDE3LjQzNzVDMy40Mzc1IDE3LjgxMjUgMy44NzUgMTguMDYyNSA0LjE4NzUgMTcuODEyNUw3LjU2MjUgMTUuNjI1QzguMzc1IDE1Ljg3NSA5LjE4NzUgMTYgMTAgMTZDMTQuOTcwNiAxNiAxOSAxMi44NjYgMTkgOC45OTk5OUMxOSA1LjEzNDAxIDE0Ljk3MDYgMiAxMCAyWiIgZmlsbD0iIzM5MUY0NyIvPgo8L3N2Zz4K" alt="Kakao">
+                                카카오 로그인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ID Selection Table -->
-                <div class="id-selection-section">
+                <div class="config-section">
                     <h3>ID Selection</h3>
                     <div class="id-table-container">
                         <table class="id-table">
@@ -31,7 +50,7 @@
                             <tbody>
                                 <tr>
                                     <td>User ID</td>
-                                    <td><span id="currentUserId">1</span></td>
+                                    <td><span id="currentUserId">x</span></td>
                                     <td>
                                         <input type="number" id="userIdInput" min="1" value="1">
                                         <button onclick="updateId('user')">Update</button>
@@ -39,26 +58,18 @@
                                 </tr>
                                 <tr>
                                     <td>Character ID</td>
-                                    <td><span id="currentCharacterId">1</span></td>
+                                    <td><span id="currentCharacterId">x</span></td>
                                     <td>
-                                        <input type="number" id="characterIdInput" min="1" value="1">
+                                        <input type="number" id="characterIdInput" min="1" value="2">
                                         <button onclick="updateId('character')">Update</button>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>Story ID</td>
-                                    <td><span id="currentStoryId">1</span></td>
+                                    <td><span id="currentStoryId">x</span></td>
                                     <td>
-                                        <input type="number" id="storyIdInput" min="1" value="1">
+                                        <input type="number" id="storyIdInput" min="1" value="2">
                                         <button onclick="updateId('story')">Update</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Phrase ID</td>
-                                    <td><span id="currentPhraseId">1</span></td>
-                                    <td>
-                                        <input type="number" id="phraseIdInput" min="1" value="1">
-                                        <button onclick="updateId('phrase')">Update</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -67,7 +78,7 @@
                 </div>
 
                 <!-- Model Configuration -->
-                <div class="model-config-section">
+                <div class="config-section">
                     <h3>Model Settings</h3>
                     <div class="config-row">
                         <label for="modelSelect">Model:</label>
@@ -78,7 +89,7 @@
                 </div>
 
                 <!-- API Endpoints -->
-                <div class="api-section">
+                <div class="config-section">
                     <h3>API Actions</h3>
                     <div class="api-buttons">
                         <button id="testConnectionBtn" class="api-btn">Test Connection</button>
@@ -89,73 +100,46 @@
             </div>
         </div>
 
-        <!-- Chat Interface -->
-        <div class="chat-container">
-            <div class="chat-header">
-                <h1>MateHub AI Chat</h1>
-                <div class="header-controls">
-                    <div class="current-config">
-                        <span class="config-label">User: <span id="headerUserId">1</span></span>
-                        <span class="config-label">Character: <span id="headerCharacterId">1</span></span>
-                        <span class="config-label">Story: <span id="headerStoryId">1</span></span>
-                    </div>
-                    <div class="status-indicator">
-                        <span id="status-dot" class="status-dot"></span>
-                        <span id="status-text">Connecting...</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-messages" id="chatMessages">
-                <!-- Scroll Loading Indicator -->
-                <div class="scroll-loading-indicator" id="scrollLoadingIndicator" style="display: none;">
-                    <div style="text-align: center; padding: 10px; color: #666; font-size: 0.9em;">
-                        📥 Loading older messages...
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Chat Interface -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h1>MateHub AI Chat</h1>
+                    <div class="header-controls">
+                        <div class="current-config">
+                            <span class="config-label">User: <span id="headerUserId">1</span></span>
+                            <span class="config-label">Character: <span id="headerCharacterId">2</span></span>
+                            <span class="config-label">Story: <span id="headerStoryId">2</span></span>
+                        </div>
+                        <div class="status-indicator">
+                            <span id="status-dot" class="status-dot"></span>
+                            <span id="status-text">Connecting...</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="message received welcome-message">
-                    <div class="message-content">
-                        👋 Welcome to MateHub! Configure your chat settings and start chatting with AI characters.
-                        <br><br>
-                        <strong>🎯 Smart Scrolling Features:</strong>
-                        <br>• <strong>Initial Load:</strong> Always loads latest messages and scrolls to bottom
-                        <br>• <strong>Send Message:</strong> Only scrolls if you were at bottom when sending
-                        <br>• <strong>Reading History:</strong> Won't interrupt you while reading older messages
-                        <br>• <strong>Auto History:</strong> Scroll to top to load older messages automatically
-                        <br><br>
-                        <strong>How it works:</strong>
-                        <br>• 🔄 Page refresh → Latest 20 messages → Auto scroll to bottom
-                        <br>• 💬 Send message at bottom → Response appears with auto scroll
-                        <br>• 📖 Send message while reading up → Response appears without scroll interruption
-                        <br>• 📜 Scroll to top → Older messages loaded automatically
-                        <br><br>
-                        <strong>💡 Smart Tip:</strong> The chat respects your reading position - no more interruptions!
-                    </div>
-                    <div class="message-footer">
-                        <div class="message-time">Smart Chat Ready</div>
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Scroll Loading Indicator -->
+                    <div class="scroll-loading-indicator" id="scrollLoadingIndicator" style="display: none;">
+                        <div style="text-align: center; padding: 10px; color: #666; font-size: 0.9em;">
+                            📥 Loading older messages...
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Load More Button -->
-            <div class="load-more-container" style="text-align: center; padding: 10px; display: none;" id="loadMoreContainer">
-                <button id="loadMoreBtn" class="load-more-btn" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    Load More Messages
-                </button>
-            </div>
-            
-            <div class="chat-input-container">
-                <form id="messageForm" class="message-form">
-                    <input 
-                        type="text" 
-                        id="messageInput" 
-                        placeholder="Type your message..." 
-                        autocomplete="off"
-                        required
-                    >
-                    <button type="submit" id="sendButton">Send</button>
-                </form>
+                
+                <div class="chat-input-container">
+                    <form id="messageForm" class="message-form">
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            placeholder="Type your message..." 
+                            autocomplete="off"
+                            required
+                        >
+                        <button type="submit" id="sendButton">Send</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -164,13 +148,7 @@
     <script src="chat-client.js"></script>
     <script src="script.js"></script>
     
-    <!-- Uncomment the following lines to enable scroll testing -->
-    <!-- 
-    <script src="test-scroll-functionality.js"></script>
-    <script>
-        // Replace default chat client with scroll test version
-        window.chatClient = new ScrollTestChatClient();
-    </script>
-    -->
+    <!-- Kakao Auth Client - Simple Version -->
+    <script src="kakao-auth.js"></script>
 </body>
 </html>

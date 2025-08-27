@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     # Ollama Configuration
     ollama_base_url: str = "http://localhost:11434"
     
+    # Kakao OAuth Configuration
+    kakao_rest_api_key: Optional[str] = None
+    kakao_client_secret: Optional[str] = None
+    kakao_redirect_uri: str = "http://localhost:8000/auth/kakao/callback"
+    
+    # JWT Configuration
+    jwt_secret_key: str = "your-jwt-secret-key-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_hours: int = 24
+    jwt_refresh_token_expire_days: int = 30
+    
     # Environment
     environment: str = "development"
     

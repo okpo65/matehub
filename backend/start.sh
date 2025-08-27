@@ -49,4 +49,4 @@ echo "Press Ctrl+C to stop all services"
 # Trap Ctrl+C to clean up processes
 trap 'echo ""; echo "🛑 Stopping services..."; kill $CELERY_PID 2>/dev/null; pkill -f "celery.*worker" 2>/dev/null; exit 0' INT
 
-poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

@@ -22,7 +22,7 @@ class CursorPaginatedChatHistoryResponse(BaseModel):
     messages: List[ChatHistoryResponse]
     has_more: bool
     next_cursor: Optional[int]
-    limit: int
+    total_count: int
 
 class ChatHistoryRequest(BaseModel):
     user_id: int
@@ -31,6 +31,17 @@ class ChatHistoryRequest(BaseModel):
     cursor: Optional[int] = None
     direction: str = "before"
 
+class ChatSendRequest(BaseModel):
+    story_id: int
+    character_id: int
+    character_image_id: Optional[int] = None
+    message: str
+
+class ChatSendResponse(BaseModel):
+    user_message_id: int
+    ai_message_id: int
+    ai_response: str
+    success: bool
 
 # Chat Schemas
 class ChatBaseSchema(BaseSchema):

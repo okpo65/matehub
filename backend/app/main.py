@@ -8,11 +8,10 @@ from dotenv import load_dotenv
 
 # Import routers
 from app.llm.router import router as llm_router
-from app.signin.router import router as auth_router
-from app.profile.router import router as profile_router
 from app.character.router import router as character_router
 from app.story.router import router as story_router
 from app.chat.router import router as chat_router
+from app.auth.routes import router as kakao_auth_router
 from app.config import settings
 
 # Load environment variables
@@ -27,19 +26,28 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "https://kauth.kakao.com",
+        "https://kapi.kakao.com"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Include routers
 app.include_router(llm_router)
-app.include_router(auth_router)
-app.include_router(profile_router)
+# app.include_router(auth_router)
+# app.include_router(profile_router)
 app.include_router(character_router)
 app.include_router(story_router)
 app.include_router(chat_router)
+app.include_router(kakao_auth_router)
 
 # Pydantic models for request/response
 class AddRequest(BaseModel):

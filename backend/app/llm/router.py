@@ -137,16 +137,16 @@ async def chat_with_llm(request: ChatRequest):
             print(f"Failed to add message to database: {e}")
             pass
 
-        try:
-            summary_task = generate_summarization.delay(
-                model='gemma3:12b',
-                user_id=user_id,
-                story_id=story_id
-            )
-            print(f"Summarization task submitted with ID: {summary_task.id}")    
-        except Exception as summary_error:
-            print(f"Failed to submit summarization task: {summary_error}")
-            pass
+        # try:
+        #     summary_task = generate_summarization.delay(
+        #         model='gemma3:12b',
+        #         user_id=user_id,
+        #         story_id=story_id
+        #     )
+        #     print(f"Summarization task submitted with ID: {summary_task.id}")    
+        # except Exception as summary_error:
+        #     print(f"Failed to submit summarization task: {summary_error}")
+        #     pass
 
         messages = []
         

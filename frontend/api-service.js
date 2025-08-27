@@ -65,13 +65,6 @@ class ApiService {
     }
 
     /**
-     * Health check for LLM service
-     */
-    async checkLlmHealth() {
-        return this.fetchWithTimeout(`${this.baseUrl}/llm/`);
-    }
-
-    /**
      * Health check for main API
      */
     async checkApiHealth() {
@@ -87,7 +80,6 @@ class ApiService {
             user_id: chatRequest.userId || null,
             character_id: chatRequest.characterId || null,
             story_id: chatRequest.storyId || null,
-            phrase_id: chatRequest.phraseId || null,
             model: chatRequest.model || 'llama3.2'
         };
 
@@ -355,39 +347,6 @@ class ApiService {
             throw new Error('Message too long (max 4000 characters)');
         }
         return true;
-    }
-
-    /**
-     * Get chat history with cursor-based pagination
-     * Matches backend get_chat_history function exactly
-     */
-    async getChatHistory(userId, storyId, limit = 20, cursor = null) {
-        const params = new URLSearchParams({
-            user_id: userId,
-            story_id: storyId,
-            limit: limit
-        });
-        
-        if (cursor) {
-            params.append('cursor', cursor);
-        }
-        
-        return this.fetchWithTimeout(`${this.baseUrl}/chat/history?${params}`);
-    }
-
-    /**
-     * Get latest chat messages for quick loading
-     * Uses the main chat history endpoint without cursor to get latest messages
-     */
-    async getLatestChatHistory(userId, storyId, limit = 10) {
-        const params = new URLSearchParams({
-            user_id: userId,
-            story_id: storyId,
-            limit: limit
-            // No cursor = get latest messages
-        });
-        
-        return this.fetchWithTimeout(`${this.baseUrl}/chat/history?${params}`);
     }
 
     /**

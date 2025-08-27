@@ -23,9 +23,6 @@ class ChatClient {
         this.attachEventListeners();
         this.updateConfigDisplay();
         this.checkServerHealth();
-        
-        // Load chat history after initialization
-        this.loadChatHistory();
     }
 
     /**
@@ -34,9 +31,8 @@ class ChatClient {
     loadConfig() {
         const defaultConfig = {
             userId: 1,
-            characterId: 1,
-            storyId: 1,
-            phraseId: 1,
+            characterId: 2,
+            storyId: 2,
             model: 'llama3.2'
         };
 
@@ -71,9 +67,6 @@ class ChatClient {
         this.chatMessages = document.getElementById('chatMessages');
         this.statusDot = document.getElementById('status-dot');
         this.statusText = document.getElementById('status-text');
-        this.loadMoreContainer = document.getElementById('loadMoreContainer');
-        this.loadMoreBtn = document.getElementById('loadMoreBtn');
-        this.scrollLoadingIndicator = document.getElementById('scrollLoadingIndicator');
 
         // Config elements
         this.modelSelect = document.getElementById('modelSelect');
@@ -111,17 +104,10 @@ class ChatClient {
             });
         }
 
-        // Load more button
-        if (this.loadMoreBtn) {
-            this.loadMoreBtn.addEventListener('click', () => {
-                this.loadMoreHistory();
-            });
-        }
-
-        // Scroll event for loading older messages
+        // Scroll event for auto-scroll behavior only
         if (this.chatMessages) {
             this.chatMessages.addEventListener('scroll', () => {
-                this.handleScroll();
+                // Keep scroll handling for auto-scroll behavior, but remove pagination
             });
         }
 
@@ -174,9 +160,6 @@ class ChatClient {
             case 'story':
                 this.config.storyId = numValue;
                 break;
-            case 'phrase':
-                this.config.phraseId = numValue;
-                break;
             default:
                 this.showError('Invalid ID type');
                 return false;
@@ -185,12 +168,6 @@ class ChatClient {
         this.saveConfig();
         this.updateConfigDisplay();
         this.showSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} ID updated to ${numValue}`);
-        
-        // Reload chat history if user or story changed
-        if ((type === 'user' && oldUserId !== numValue) || 
-            (type === 'story' && oldStoryId !== numValue)) {
-            this.reloadChatHistory();
-        }
         
         return true;
     }
@@ -228,7 +205,6 @@ class ChatClient {
                 userId: this.config.userId,
                 characterId: this.config.characterId,
                 storyId: this.config.storyId,
-                phraseId: this.config.phraseId,
                 model: this.config.model
             };
 
@@ -299,7 +275,7 @@ class ChatClient {
         this.updateStatus('connecting', 'Connecting...');
         
         try {
-            await this.apiService.checkLlmHealth();
+            await this.apiService.checkApiHealth();
             this.updateStatus('connected', 'Connected');
         } catch (error) {
             console.error('Health check failed:', error);
@@ -611,19 +587,6 @@ class ChatClient {
     /**
      * Handle scroll events for loading older messages when scrolled to top
      */
-    handleScroll() {
-        if (!this.hasMoreHistory || this.isLoadingHistory) return;
-        
-        const scrollTop = this.chatMessages.scrollTop;
-        const threshold = 50; // Load when within 50px of top
-        
-        // Check if scrolled to top
-        if (scrollTop <= threshold) {
-            console.log(`🔄 Scrolled to top (${scrollTop}px) - loading older messages automatically`);
-            this.loadMoreHistory();
-        }
-    }
-
     /**
      * Check if user is scrolled to bottom of chat
      */
@@ -708,83 +671,11 @@ class ChatClient {
      * Load chat history from server - loads ONLY latest messages on initial page load
      */
     async loadChatHistory() {
-        if (this.chatHistoryLoaded) return;
-        
-        try {
-            console.log('📥 Loading LATEST chat history (initial page load)...');
-            console.log('🔧 Configuration:', { 
-                userId: this.config.userId, 
-                storyId: this.config.storyId 
-            });
-            
-            this.updateStatus('connecting', 'Loading latest messages...');
-            
-            // Get ONLY latest messages WITHOUT cursor for initial page load
-            const response = await this.apiService.getLatestChatHistory(
-                this.config.userId, 
-                this.config.storyId, 
-                20 // Load ONLY last 20 messages
-            );
-            
-            console.log(`📊 Latest messages API response:`, response);
-            
-            // Extract messages from the response
-            const messages = response.messages || [];
-            
-            if (messages && messages.length > 0) {
-                console.log(`✅ Loaded ${messages.length} LATEST messages (no history)`);
-                
-                // Clear existing messages except welcome message
-                this.clearChatForHistory();
-                
-                // Add messages to UI and conversation history
-                messages.forEach(msg => {
-                    const messageType = msg.is_user_message ? 'sent' : 'received';
-                    // Force scroll for initial load
-                    this.addMessage(msg.contents, messageType, false, msg.id, true);
-                    
-                    // Add to conversation history
-                    this.conversationHistory.push({
-                        type: msg.is_user_message ? 'user' : 'assistant',
-                        message: msg.contents,
-                        timestamp: msg.created_at,
-                        id: msg.id
-                    });
-                });
-                
-                // ALWAYS scroll to bottom after loading latest messages
-                setTimeout(() => {
-                    this.scrollToBottom();
-                    console.log('📍 FORCED scroll to bottom after loading latest messages');
-                }, 150);
-                
-                this.showSuccess(`Loaded ${messages.length} latest messages`);
-                
-                // Set cursor for pagination (oldest message ID for loading more)
-                this.nextCursor = response.next_cursor;
-                this.hasMoreHistory = response.has_more || messages.length >= 20; // Assume more if we got full batch
-                
-                console.log(`🔄 Cursor for older messages: ${this.nextCursor}`);
-                console.log(`📊 Has more history: ${this.hasMoreHistory}`);
-                
-                // Hide load more button initially - will show when scrolling up
-                if (this.loadMoreContainer) {
-                    this.loadMoreContainer.style.display = 'none';
-                }
-            } else {
-                console.log('ℹ️ No chat history found');
-            }
-            
-            this.chatHistoryLoaded = true;
-            this.updateStatus('connected', 'Connected');
-            
-        } catch (error) {
-            console.error('❌ Failed to load chat history:', error);
-            this.updateStatus('error', 'Failed to load history');
-            this.showError(`Failed to load chat history: ${error.message}`);
-        }
+        // Chat history loading disabled - no longer needed
+        console.log("📭 Chat history loading disabled");
+        this.chatHistoryLoaded = true;
+        this.updateStatus("connected", "Connected");
     }
-
     /**
      * Check if there are more messages to load using cursor
      * This method is no longer needed since we get has_more from the main response
@@ -798,106 +689,6 @@ class ChatClient {
     /**
      * Load more chat history using cursor-based pagination
      */
-    async loadMoreHistory() {
-        if (!this.hasMoreHistory || !this.nextCursor || this.isLoadingHistory) return;
-        
-        try {
-            this.isLoadingHistory = true;
-            
-            // Show loading indicators
-            if (this.loadMoreBtn) {
-                this.loadMoreBtn.disabled = true;
-                this.loadMoreBtn.textContent = 'Loading...';
-            }
-            
-            if (this.scrollLoadingIndicator) {
-                this.scrollLoadingIndicator.style.display = 'block';
-            }
-            
-            // Store current scroll position to maintain it after loading
-            const scrollHeight = this.chatMessages.scrollHeight;
-            const scrollTop = this.chatMessages.scrollTop;
-            
-            console.log(`📥 Loading more messages with cursor: ${this.nextCursor}`);
-            
-            const response = await this.apiService.getChatHistory(
-                this.config.userId,
-                this.config.storyId,
-                20, // Load 20 more messages
-                this.nextCursor
-            );
-            
-            console.log(`📊 API Response:`, {
-                messages: response.messages?.length || 0,
-                has_more: response.has_more,
-                next_cursor: response.next_cursor
-            });
-            
-            if (response.messages && response.messages.length > 0) {
-                // Insert messages at the beginning (after scroll indicator and welcome message)
-                const welcomeMessage = this.chatMessages.querySelector('.welcome-message');
-                const insertAfter = welcomeMessage || this.chatMessages.firstChild;
-                
-                // Messages are already in chronological order (oldest first)
-                response.messages.forEach(msg => {
-                    const messageDiv = this.createMessageElement(
-                        msg.contents, 
-                        msg.is_user_message ? 'sent' : 'received',
-                        false,
-                        msg.id // Pass the message ID
-                    );
-                    
-                    if (insertAfter && insertAfter.nextSibling) {
-                        this.chatMessages.insertBefore(messageDiv, insertAfter.nextSibling);
-                    } else {
-                        this.chatMessages.appendChild(messageDiv);
-                    }
-                    
-                    // Add to conversation history at the beginning
-                    this.conversationHistory.unshift({
-                        type: msg.is_user_message ? 'user' : 'assistant',
-                        message: msg.contents,
-                        timestamp: msg.created_at,
-                        id: msg.id
-                    });
-                });
-                
-                // Maintain scroll position
-                const newScrollHeight = this.chatMessages.scrollHeight;
-                const heightDifference = newScrollHeight - scrollHeight;
-                this.chatMessages.scrollTop = scrollTop + heightDifference;
-                
-                // Update cursor for next pagination
-                this.nextCursor = response.next_cursor;
-                this.hasMoreHistory = response.has_more;
-                
-                console.log(`✅ Loaded ${response.messages.length} more messages`);
-                console.log(`🔄 Next cursor: ${this.nextCursor}, Has more: ${this.hasMoreHistory}`);
-            }
-            
-            // Hide load more button if no more messages
-            if (!this.hasMoreHistory && this.loadMoreContainer) {
-                this.loadMoreContainer.style.display = 'none';
-            }
-            
-        } catch (error) {
-            console.error('❌ Failed to load more history:', error);
-            this.showError('Failed to load more messages');
-        } finally {
-            this.isLoadingHistory = false;
-            
-            // Hide loading indicators
-            if (this.loadMoreBtn) {
-                this.loadMoreBtn.disabled = false;
-                this.loadMoreBtn.textContent = 'Load More Messages';
-            }
-            
-            if (this.scrollLoadingIndicator) {
-                this.scrollLoadingIndicator.style.display = 'none';
-            }
-        }
-    }
-
     /**
      * Create message element without adding to DOM
      */
@@ -958,30 +749,8 @@ class ChatClient {
      * Reload chat history when config changes - loads latest messages and scrolls to bottom
      */
     async reloadChatHistory() {
-        console.log('🔄 Reloading chat history due to config change...');
-        
-        this.chatHistoryLoaded = false;
-        this.nextCursor = null;
-        this.prevCursor = null;
-        this.hasMoreHistory = false;
-        this.isLoadingHistory = false;
-        this.conversationHistory = [];
-        
-        // Clear existing messages
-        this.clearChatForHistory();
-        
-        if (this.loadMoreContainer) {
-            this.loadMoreContainer.style.display = 'none';
-        }
-        
-        // Load latest messages for new configuration
-        await this.loadChatHistory();
-        
-        // Ensure scroll to bottom after reload
-        setTimeout(() => {
-            this.scrollToBottom();
-            console.log('📍 Auto-scrolled to bottom after config reload');
-        }, 200);
+        // Chat history reloading disabled - no longer needed
+        console.log('📭 Chat history reloading disabled');
     }
 
     /**
@@ -995,12 +764,6 @@ class ChatClient {
             messages.forEach(msg => msg.remove());
         }
         this.chatHistoryLoaded = false;
-        this.nextCursor = null;
-        this.prevCursor = null;
-        this.hasMoreHistory = false;
-        if (this.loadMoreContainer) {
-            this.loadMoreContainer.style.display = 'none';
-        }
         this.showSuccess('Chat cleared');
     }
 

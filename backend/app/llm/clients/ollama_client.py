@@ -48,8 +48,6 @@ class OllamaClient(BaseLLMClient):
             data = response.json()
             return data["message"]["content"]
             
-        except ModelNotFoundError:
-            raise
         except Exception as e:
             logger.error(f"Error generating Ollama response: {e}")
             raise GenerationError(f"Ollama generation failed: {str(e)}")
