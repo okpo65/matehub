@@ -8,8 +8,11 @@ from app.llm.tasks import (
 )
 from app.llm.client_factory import LLMClientFactory
 from app.config import settings
-from app.chat.chat_service import ChatService   
-
+from app.chat.chat_service import ChatService
+from app.api.jwt_auth import get_current_user_or_anonymous
+from app.profile.services import UserService
+from app.database.connection import get_db
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/llm", tags=["LLM"])
 
@@ -54,25 +57,36 @@ class ModelPullRequest(BaseModel):
     model_name: str
 
 @router.get("/providers")
-async def list_providers():
-    """List available LLM providers and their status"""
+async def list_providers(
+    db: Session = Depends(get_db)
+):
     try:
         return LLMClientFactory.get_available_providers()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to check providers: {str(e)}")
 
 @router.get("/models")
-async def list_models():
+async def list_models(
+    db: Session = Depends(get_db)
+):
     """List available LLM models"""
     return LLMClientFactory.get_available_models()
 
 @router.get("/chat_history/{story_chat_history_id}")
-async def get_chat_history(story_chat_history_id: int):
+async def get_chat_history(
+    story_chat_history_id: int,
+    user_id: int = Depends(get_current_user_or_anonymous),
+    db: Session = Depends(get_db)
+):
     """Get the chat history"""
-    chat_service = ChatService()
+    chat_service = ChatService(db)
     chat_history = chat_service.get_story_chat_history_by_id(story_chat_history_id)
+    
+    if chat_history.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     return ChatHistoryResponse(
-        user_id=chat_history.user_id,
+        user_id=user_id,
         character_id=chat_history.character_id,
         story_id=chat_history.story_id,
         contents=chat_history.contents,
@@ -81,10 +95,13 @@ async def get_chat_history(story_chat_history_id: int):
     )
 
 @router.get("/chat_history_status/{story_chat_history_id}")
-async def get_chat_history_status(story_chat_history_id: int):
+async def get_chat_history_status(
+    story_chat_history_id: int,
+    db: Session = Depends(get_db)
+):
     """Get the status of a chat history"""
     try:
-        chat_service = ChatService()
+        chat_service = ChatService(db)
         status = chat_service.get_story_chat_history_status(story_chat_history_id)
     
         return ChatHistoryStatusResponse(
@@ -97,7 +114,11 @@ async def get_chat_history_status(story_chat_history_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to get chat history status: {str(e)}")
 
 @router.post("/chat", response_model=LLMResponse)
-async def chat_with_llm(request: ChatRequest):
+async def chat_with_llm(
+    request: ChatRequest,
+    user_id: int = Depends(get_current_user_or_anonymous),
+    db: Session = Depends(get_db)
+):
     """Chat with LLM - supports multiple providers"""
     try:
         print(f"Chat request received: {request}")
@@ -105,7 +126,6 @@ async def chat_with_llm(request: ChatRequest):
         if not request.message or not request.message.strip():
             raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        user_id = request.user_id or 1
         character_id = request.character_id or 1
         story_id = request.story_id or 1
         model = request.model or "gemini-2.0-flash-lite"
@@ -155,7 +175,7 @@ async def chat_with_llm(request: ChatRequest):
         messages.append({"role": "model", "content": f"네, 알겠습니다. 지금부터 {character.description} 역할로 대화하겠습니다."})
 
         try:
-            chat_history = chat_service.get_user_chat_history(user_id, story_id, max_count=5)
+            chat_history = chat_service.get_user_chat_history(user.id, story_id, max_count=5)
             if chat_history:
                 for chat in chat_history: 
                     role = "user" if chat.is_user_message else "model"

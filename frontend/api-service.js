@@ -1,11 +1,56 @@
 /**
  * API Service for MateHub LLM/Chat endpoints
- * Handles all backend communication with proper error handling
+ * Handles all backend communication with proper error handling and JWT authentication
  */
 class ApiService {
     constructor(baseUrl = 'http://localhost:8000') {
         this.baseUrl = baseUrl;
         this.defaultTimeout = 10000; // 10 seconds
+        this.token = localStorage.getItem('access_token');
+    }
+
+    /**
+     * Set JWT token for authentication
+     */
+    setToken(token) {
+        this.token = token;
+        if (token) {
+            localStorage.setItem('access_token', token);
+        } else {
+            localStorage.removeItem('access_token');
+        }
+    }
+
+    setRefreshToken(refreshToken) {
+        this.refreshToken = refreshToken;
+        if (refreshToken) {
+            localStorage.setItem('refresh_token', refreshToken);
+        } else {
+            localStorage.removeItem('refresh_token');
+        }
+    }
+
+    /**
+     * Get JWT token from storage
+     */
+    getToken() {
+        return this.token || localStorage.getItem('access_token');
+    }
+
+    /**
+     * Clear JWT token
+     */
+    clearToken() {
+        this.token = null;
+        localStorage.removeItem('access_token');
+    }
+
+    /**
+     * Get authorization headers
+     */
+    getAuthHeaders() {
+        const token = this.getToken();
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
     }
 
     /**
@@ -24,6 +69,7 @@ class ApiService {
                 signal: controller.signal,
                 headers: {
                     'Content-Type': 'application/json',
+                    ...this.getAuthHeaders(),
                     ...options.headers
                 }
             });
@@ -367,7 +413,113 @@ class ApiService {
         }
         return error.message || 'An unexpected error occurred';
     }
+
+    // ===== Authentication Methods =====
+
+    /**
+     * Get anonymous JWT token
+     */
+    async getAnonymousToken() {
+        const response = await this.fetchWithTimeout(`${this.baseUrl}/auth/anonymous-token`, {
+            method: 'POST',
+            body: JSON.stringify({
+                refresh_token: localStorage.getItem('refresh_token') ?? ""
+            }),
+            headers: this.getAuthHeaders(),
+            credentials: 'include',
+        });
+        
+        if (response.access_token) {
+            this.setToken(response.access_token);
+            this.setRefreshToken(response.refresh_token);
+        }
+        
+        return response;
+    }
+
+    /**
+     * Create JWT token after Kakao login
+     */
+    async createKakaoToken(kakaoUserData) {
+        const response = await this.fetchWithTimeout(`${this.baseUrl}/auth/kakao-token`, {
+            method: 'POST',
+            body: JSON.stringify(kakaoUserData)
+        });
+        
+        if (response.access_token) {
+            this.setToken(response.access_token);
+        }
+        
+        return response;
+    }
+
+    /**
+     * Get current user information
+     */
+    async getCurrentUser() {
+        return this.fetchWithTimeout(`${this.baseUrl}/auth/me`);
+    }
+
+    /**
+     * Refresh JWT token
+     */
+    async refreshToken() {
+        const response = await this.fetchWithTimeout(`${this.baseUrl}/auth/refresh-token`, {
+            method: 'POST'
+        });
+        
+        if (response.access_token) {
+            this.setToken(response.access_token);
+        }
+        
+        return response;
+    }
+
+    /**
+     * Validate current token
+     */
+    async validateToken() {
+        return this.fetchWithTimeout(`${this.baseUrl}/auth/validate`);
+    }
+
+    /**
+     * Logout user
+     */
+    logout() {
+        this.clearToken();
+    }
+
+    /**
+     * Check if user is authenticated
+     */
+    isAuthenticated() {
+        return !!this.getToken();
+    }
+
+    /**
+     * Initialize authentication - get anonymous token if no token exists
+     */
+    async initializeAuth() {
+        if (!this.getToken()) {
+            try {
+                await this.getAnonymousToken();
+                console.log('Anonymous token obtained');
+            } catch (error) {
+                console.error('Failed to get anonymous token:', error);
+            }
+        } else {
+            try {
+                const validation = await this.validateToken();
+                console.log('Token validation:', validation);
+            } catch (error) {
+                console.error('Token validation failed, getting new anonymous token:', error);
+                this.clearToken();
+                await this.getAnonymousToken();
+            }
+        }
+    }
 }
+
 
 // Export for use in other modules
 window.ApiService = ApiService;

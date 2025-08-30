@@ -7,6 +7,7 @@
 let chatClient = null;
 let configPanelVisible = true;
 let kakaoAuth = null;
+let apiService = null;
 
 /**
  * Initialize the application when DOM is loaded
@@ -23,6 +24,28 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializeApp() {
     try {
         console.log('앱 초기화 시작...');
+        
+        // Initialize API service
+        apiService = new ApiService();
+        
+        // Initialize authentication (get anonymous token if needed)
+        await apiService.initializeAuth();
+        
+        // Try to get current user info if authenticated
+        try {
+            const validation = await apiService.validateToken();
+            if (validation.user_type === 'authenticated') {
+                const currentUser = await apiService.getCurrentUser();
+                console.log('Current user:', currentUser);
+                updateUserInfo(currentUser);
+            } else {
+                console.log('Using anonymous authentication');
+                updateAnonymousUserInfo();
+            }
+        } catch (error) {
+            console.error('Failed to validate token or get user info:', error);
+            updateAnonymousUserInfo();
+        }
         
         // URL 파라미터를 먼저 확인하고 저장
         const urlParams = new URLSearchParams(window.location.search);
@@ -357,6 +380,52 @@ function loadUserInfo() {
     }
 }
 
+/**
+ * Update user info in the UI
+ */
+function updateUserInfo(user) {
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    const loginButtons = document.getElementById('loginButtons');
+    
+    if (userInfo && userName && loginButtons) {
+        userName.textContent = user.name || user.nickname;
+        userInfo.style.display = 'block';
+        loginButtons.style.display = 'none';
+    }
+    
+    // Setup logout button
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+}
+
+/**
+ * Update UI for anonymous user
+ */
+function updateAnonymousUserInfo() {
+    const userInfo = document.getElementById('userInfo');
+    const loginButtons = document.getElementById('loginButtons');
+    
+    if (userInfo && loginButtons) {
+        userInfo.style.display = 'none';
+        loginButtons.style.display = 'block';
+    }
+}
+
+/**
+ * Handle user logout
+ */
+function handleLogout() {
+    if (apiService) {
+        apiService.logout();
+        // Get new anonymous token
+        apiService.initializeAuth();
+        updateAnonymousUserInfo();
+    }
+}
+
 // Export for potential module use
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -365,6 +434,8 @@ if (typeof module !== 'undefined' && module.exports) {
         setupApiButtons,
         setupIdUpdates,
         loadUserInfo,
-        updateUserIdDisplay
+        updateUserIdDisplay,
+        updateUserInfo,
+        handleLogout
     };
 }

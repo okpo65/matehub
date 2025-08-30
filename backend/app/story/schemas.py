@@ -34,7 +34,6 @@ class StoryDetailResponse(BaseModel):
 class StoryUserMatchResponse(BaseModel):
     id: int
     story_id: int
-    user_id: int
     progress: int
     intimacy: int
     created_at: datetime
@@ -44,7 +43,6 @@ class StoryUserMatchResponse(BaseModel):
 
 class CreateStoryUserMatchRequest(BaseModel):
     story_id: int
-    user_id: int
     user_name_in_story: Optional[str] = None
     progress: Optional[int] = 0
     intimacy: Optional[int] = 0
@@ -52,7 +50,7 @@ class CreateStoryUserMatchRequest(BaseModel):
 class StoryUserMatchCreateResponse(BaseModel):
     id: int
     story_id: int
-    user_id: int
+    user_name_in_story: str
     progress: int
     intimacy: int
     message: str

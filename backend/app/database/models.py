@@ -16,20 +16,20 @@ class BaseModel(Base):
 class User(BaseModel):
     __tablename__ = "users"
     
-    name = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
-    # Authentication fields
+    # Authentication fields - Kakao only
     anonymous_user_id = Column(String(36), nullable=True, unique=True)  # UUID for anonymous users
     kakao_id = Column(String(255), nullable=True, unique=True)  # Kakao user ID
-    email = Column(String(255), nullable=True)
-    nickname = Column(String(255), nullable=True)  # Kakao nickname
-    profile_image_url = Column(String(255), nullable=True)  # Kakao profile image
     is_anonymous = Column(Boolean, default=True)
     
     # OAuth tokens
     kakao_access_token = Column(Text, nullable=True)  # Kakao access token
     kakao_refresh_token = Column(Text, nullable=True)  # Kakao refresh token
     kakao_token_expires_at = Column(DateTime(timezone=True), nullable=True)  # Token expiration time
+    
+    # JWT refresh token
+    refresh_token = Column(Text, nullable=True)  # JWT refresh token
+    refresh_token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
@@ -54,7 +54,9 @@ class Profile(BaseModel):
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     nickname = Column(String(255), nullable=False)
+    tag_name = Column(String(255), nullable=False)
     thumbnail_url = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="profiles")
@@ -67,6 +69,7 @@ class Story(BaseModel):
     description = Column(Text, nullable=False)
     background_image_url = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
+    is_popular = Column(Boolean, default=False)
 
     # Relationships
     character = relationship("Character", back_populates="stories")

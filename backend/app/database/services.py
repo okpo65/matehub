@@ -133,6 +133,33 @@ class StoryService:
     def __init__(self, db: Session):
         self.db = db
 
+    def get_stories(self, limit: int, cursor: int = None) -> List[StoryWithCharacterSchema]:
+        """Get all stories with their characters"""
+        query = (
+            self.db.query(Story)
+            .options(
+                joinedload(Story.character).selectinload(Character.images)
+            )
+            .order_by(Story.id)
+            .filter(Story.is_active == True)
+        )
+        if cursor:
+            query = query.filter(Story.id < cursor)
+
+        return query.limit(limit).all()
+
+    def get_popular_stories(self, limit: int = 10) -> List[StoryWithCharacterSchema]:
+        query = (
+            self.db.query(Story)
+            .options(
+                joinedload(Story.character).selectinload(Character.images)
+            )
+            .order_by(Story.id)
+            .filter(Story.is_active == True)
+            .filter(Story.is_popular == True)
+        )
+        return query.limit(limit).all()
+
     def get_story_with_character(self, story_id: int) -> Optional[StoryWithCharacterSchema]:
         """Get story with character information"""
         story = (
@@ -147,6 +174,8 @@ class StoryService:
         if story:
             return StoryWithCharacterSchema.model_validate(story)
         return None
+
+    
 
     def get_story_detail(self, story_id: int) -> Optional[StoryDetailResponse]:
         """Get complete story details with all relationships"""

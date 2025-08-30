@@ -28,16 +28,20 @@ class KakaoAuthClient {
      */
     async checkLoginStatus() {
         try {
-            const storedUser = localStorage.getItem('kakao_user');
-            const userId = localStorage.getItem('user_id');
-            const kakaoId = localStorage.getItem('kakao_id');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const accessToken = localStorage.getItem('access_token');
             const isAnonymous = localStorage.getItem('is_anonymous') === 'true';
 
-            if (storedUser && userId && kakaoId && !isAnonymous) {
-                this.currentUser = JSON.parse(storedUser);
-                
+            if (refreshToken && accessToken && !isAnonymous) {
                 // Verify with backend using kakao_id
-                const response = await fetch(`${this.baseUrl}/auth/user/${kakaoId}`);
+                const response = await fetch(`${this.baseUrl}/check/kakao-login`, {
+                    method: 'POST',
+                    headers: this.getAuthHeaders(),
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        refresh_token: localStorage.getItem('refresh_token')
+                    })
+                });
                 if (response.ok) {
                     this.isLoggedIn = true;
                     this.showUserInfo();
@@ -131,16 +135,13 @@ class KakaoAuthClient {
             console.log('로그인 성공 처리:', loginData);
 
             const userInfo = {
-                kakao_id: loginData.kakao_id,
-                user_id: loginData.user_id, // DB의 실제 user ID
-                is_new_user: loginData.is_new_user,
-                login_timestamp: loginData.login_timestamp,
-                created_at: new Date().toISOString()
+                access_token: loginData.access_token,
+                refresh_token: loginData.refresh_token,
+                is_new_user: loginData.is_new_user
             };
 
-            localStorage.setItem('kakao_user', JSON.stringify(userInfo));
-            localStorage.setItem('user_id', loginData.user_id); // DB user ID 사용
-            localStorage.setItem('kakao_id', loginData.kakao_id); // kakao_id도 별도 저장
+            localStorage.setItem('access_token', userInfo.access_token);
+            localStorage.setItem('refresh_token', userInfo.refresh_token);
             localStorage.setItem('is_anonymous', 'false');
 
             this.currentUser = userInfo;
@@ -264,10 +265,10 @@ class KakaoAuthClient {
      */
     async logout() {
         try {
-            const kakaoId = localStorage.getItem('kakao_id');
+            const accessToken = localStorage.getItem('access_token');
             const isAnonymous = localStorage.getItem('is_anonymous') === 'true';
 
-            if (!isAnonymous && kakaoId) {
+            if (!isAnonymous && accessToken) {
                 const response = await fetch(`${this.baseUrl}/auth/kakao/logout/${kakaoId}`, {
                     method: 'POST'
                 });
@@ -317,21 +318,21 @@ class KakaoAuthClient {
                         <span class="user-type-badge anonymous">익명</span>
                     </span>
                 `;
-            } else if (this.currentUser && this.currentUser.kakao_id) {
+            } else if (this.currentUser && this.currentUser.access_token) {
                 userName.innerHTML = `
                     <span class="user-display">
-                        <span class="kakao-user-id">카카오 사용자 (${this.currentUser.kakao_id})</span>
+                        <span class="kakao-user-id">카카오 사용자 (${this.currentUser.access_token})</span>
                         <span class="user-type-badge kakao">카카오 로그인됨</span>
                     </span>
                 `;
             } else {
-                const storedKakaoUser = localStorage.getItem('kakao_user');
+                const storedKakaoUser = localStorage.getItem('access_token');
                 if (storedKakaoUser && !isAnonymous) {
                     try {
                         const kakaoUser = JSON.parse(storedKakaoUser);
                         userName.innerHTML = `
                             <span class="user-display">
-                                <span class="kakao-user-id">카카오 사용자 (${kakaoUser.kakao_id})</span>
+                                <span class="kakao-user-id">카카오 사용자 (${access_token})</span>
                                 <span class="user-type-badge kakao">카카오 로그인됨</span>
                             </span>
                         `;

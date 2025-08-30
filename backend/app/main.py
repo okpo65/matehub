@@ -11,7 +11,9 @@ from app.llm.router import router as llm_router
 from app.character.router import router as character_router
 from app.story.router import router as story_router
 from app.chat.router import router as chat_router
-from app.auth.routes import router as kakao_auth_router
+from app.login.routes import router as kakao_auth_router
+from app.api.auth import router as jwt_auth_router
+from app.profile.router import router as profile_router
 from app.config import settings
 
 # Load environment variables
@@ -41,9 +43,10 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(jwt_auth_router)
 app.include_router(llm_router)
 # app.include_router(auth_router)
-# app.include_router(profile_router)
+app.include_router(profile_router)
 app.include_router(character_router)
 app.include_router(story_router)
 app.include_router(chat_router)

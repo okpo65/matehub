@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database.connection import get_db
+from app.database.models import User
+from app.api.jwt_auth import get_current_user_or_anonymous
 from app.character.schemas import CharacterDetailResponse, CharacterImageSchema, CharacterWithStoriesSchema, CharacterProfileResponse
 from app.database.services import CharacterService
 
@@ -11,13 +13,16 @@ router = APIRouter(prefix="/characters", tags=["characters"])
 
 @router.get("/", response_model=List[CharacterWithStoriesSchema])
 async def get_characters(
-    is_popular: Optional[bool] = None,
     db: Session = Depends(get_db)
 ):
     return CharacterService(db).get_characters()
 
 @router.get("/story_detail/{character_id}", response_model=CharacterDetailResponse)
-async def get_character_detail(character_id: int, db: Session = Depends(get_db)):
+async def get_character_detail(
+    character_id: int, 
+    user_id: int = Depends(get_current_user_or_anonymous),
+    db: Session = Depends(get_db)
+):
     return CharacterService(db).get_character_story_detail(character_id)
 
 @router.get("/{character_id}/photos", response_model=List[CharacterImageSchema])

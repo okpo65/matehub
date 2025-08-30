@@ -133,11 +133,9 @@
                 if (response.ok && data.success) {
                     // Success - store login data temporarily and notify parent
                     const loginData = {
-                        kakao_id: data.kakao_id,
-                        user_id: data.user_id,
-                        is_new_user: data.is_new_user,
-                        login_timestamp: data.login_timestamp,
-                        timestamp: new Date().toISOString()
+                        access_token: data.access_token,
+                        refresh_token: data.refresh_token,
+                        is_new_user: data.is_new_user
                     };
 
                     updateStatus(
@@ -148,7 +146,9 @@
                     );
 
                     // Store in localStorage for parent window to pick up
-                    localStorage.setItem('recent_kakao_login', JSON.stringify(loginData));
+                    localStorage.setItem('access_token', loginData.access_token);
+                    localStorage.setItem('refresh_token', loginData.refresh_token);
+                    localStorage.setItem('is_anonymous', 'false');
 
                     if (window.opener) {
                         // Notify parent window of success

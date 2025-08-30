@@ -134,11 +134,9 @@ class AuthClient {
             const data = await response.json();
             
             // Store new token
-            this.setToken(data.access_token);
-            
-            // Update localStorage
-            localStorage.setItem('user_id', data.user_id);
             localStorage.setItem('is_anonymous', 'false');
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
             
             return data;
         } catch (error) {
