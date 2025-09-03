@@ -31,23 +31,75 @@ async def kakao_login():
         raise HTTPException(status_code=500, detail="로그인 URL 생성에 실패했습니다")
 
 @router.get("/kakao/callback/page")
-async def kakao_callback_page():
-    """카카오 콜백 처리 페이지 반환"""
+async def kakao_callback_page(
+    code: str = Query(..., description="카카오에서 받은 인증 코드"),
+    db: Session = Depends(get_db)
+):
+    """카카오 콜백 처리 후 프론트엔드로 리다이렉트"""
     try:
-        # Get the directory where this file is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        callback_html_path = os.path.join(current_dir, "callback.html")
+        logger.info(f"카카오 콜백 페이지 - 인증 코드: {code[:10]}...")
         
-        with open(callback_html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
+        # 1. 인증 코드로 토큰들 획득
+        token_data = await kakao_oauth.get_tokens(code)
+        if not token_data:
+            return RedirectResponse(url="http://localhost:3000/callback-bridge.html?error=token_failed")
         
-        return HTMLResponse(content=html_content, status_code=200)
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        expires_at = token_data.get("expires_at")
+        
+        # 2. 사용자 정보 획득
+        user_info = await kakao_oauth.get_user_info(access_token)
+        if not user_info:
+            return RedirectResponse(url="http://localhost:3000/callback-bridge.html?error=user_info_failed")
+        
+        kakao_id = str(user_info.get("id"))
+        
+        # 3. 사용자 확인 또는 생성
+        user = db.query(User).filter(User.kakao_id == kakao_id).first()
+        is_new_user = False
+        
+        if not user:
+            user_service = UserService(db)
+            user = user_service.create_user(
+                kakao_id=kakao_id,
+                kakao_access_token=access_token,
+                kakao_refresh_token=refresh_token,
+                kakao_token_expires_at=expires_at,
+                is_anonymous=False
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            is_new_user = True
+        else:
+            user.kakao_access_token = access_token
+            user.kakao_refresh_token = refresh_token
+            user.kakao_token_expires_at = expires_at
+            user.is_anonymous = False
+            db.commit()
+
+        # 4. JWT 토큰 생성
+        tokens = create_tokens_for_user(user.id, is_anonymous=False)
+        user.refresh_token = tokens["refresh_token"]
+        user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        user.access_token = tokens["access_token"]
+        db.commit()
+        
+        # 5. callback-bridge.html로 리다이렉트
+        from urllib.parse import urlencode
+        params = {
+            'access_token': tokens["access_token"],
+            'refresh_token': tokens["refresh_token"],
+            'kakao_id': kakao_id,
+            'is_new_user': str(is_new_user).lower()
+        }
+        redirect_url = f"http://localhost:3000/callback-bridge.html?{urlencode(params)}"
+        return RedirectResponse(url=redirect_url)
+        
     except Exception as e:
-        logger.error(f"콜백 페이지 로드 실패: {e}")
-        return HTMLResponse(
-            content="<html><body><h1>Error loading callback page</h1></body></html>",
-            status_code=500
-        )
+        logger.error(f"카카오 콜백 페이지 처리 실패: {e}")
+        return RedirectResponse(url="http://localhost:3000/callback-bridge.html?error=server_error")
 
 @router.get("/kakao/callback")
 async def kakao_callback(
@@ -148,6 +200,7 @@ async def kakao_callback(
                 "access_token": tokens["access_token"],
                 "refresh_token": tokens["refresh_token"],
                 "is_new_user": is_new_user,
+                "kakao_id": kakao_id
             }
         )
         

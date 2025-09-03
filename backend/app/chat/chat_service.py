@@ -6,6 +6,7 @@ from app.database.connection import get_db_session
 from typing import List, Optional
 from sqlalchemy import select
 import logging
+from app.database.models import Story
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,13 @@ class ChatService:
             return self.db.query(Character).filter(Character.id == character_id).first()
         except Exception as e:
             logger.error(f"Error getting character {character_id}: {e}")
+            return None
+
+    def get_story(self, story_id: int) -> Optional[Story]:
+        try:
+            return self.db.query(Story).filter(Story.id == story_id).first()
+        except Exception as e:
+            logger.error(f"Error getting story {story_id}: {e}")
             return None
     
     def get_user_chat_history(self, user_id: int, story_id: int, max_count: int = 10, offset: int = 0) -> List[StoryChatHistory]:

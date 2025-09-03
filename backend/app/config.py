@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # Kakao OAuth Configuration
     kakao_rest_api_key: Optional[str] = None
     kakao_client_secret: Optional[str] = None
-    kakao_redirect_uri: str = "http://localhost:8000/auth/kakao/callback"
+    kakao_redirect_uri: str = "http://localhost:8000/auth/kakao/callback/page"
     
     # JWT Configuration
     jwt_secret_key: str = "your-jwt-secret-key-change-in-production"

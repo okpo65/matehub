@@ -15,6 +15,7 @@ class GeminiClient(BaseLLMClient):
         super().__init__()
         
         self.api_key = settings.gemini_api_key
+        print(f"Gemini API key: {self.api_key}")
         if not self.api_key:
             raise ConfigurationError("Gemini API key is required. Set GEMINI_API_KEY in environment or config.")
         

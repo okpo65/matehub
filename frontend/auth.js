@@ -1,326 +1,99 @@
-/**
- * JWT-based authentication helper for anonymous and Kakao OAuth login
- */
-class AuthClient {
-    constructor(baseUrl = 'http://localhost:8000') {
-        this.baseUrl = baseUrl;
+class AuthService {
+    constructor() {
+        this.apiBase = 'http://localhost:8000';
     }
 
-    /**
-     * Get JWT token from localStorage or cookie
-     */
-    getToken() {
-        // Try localStorage first
-        let token = localStorage.getItem('access_token');
-        if (token) return token;
+    showStatus(message, isError = false) {
+        const status = document.getElementById('status');
+        status.textContent = message;
+        status.className = `status ${isError ? 'error' : 'success'}`;
+        status.style.display = 'block';
         
-        // Try cookie as fallback
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'access_token') {
-                return value;
-            }
-        }
-        return null;
+        setTimeout(() => {
+            status.style.display = 'none';
+        }, 3000);
     }
 
-    /**
-     * Set JWT token in localStorage and Authorization header
-     */
-    setToken(token) {
-        if (token) {
-            localStorage.setItem('access_token', token);
-        } else {
-            localStorage.removeItem('access_token');
-        }
+    saveTokens(tokens) {
+        localStorage.setItem('access_token', tokens.access_token);
+        localStorage.setItem('refresh_token', tokens.refresh_token);
+        localStorage.setItem('user_type', tokens.user_type);
     }
 
-    /**
-     * Get Authorization headers for API calls
-     */
-    getAuthHeaders() {
-        const token = this.getToken();
-        return token ? {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        } : {
-            'Content-Type': 'application/json'
-        };
-    }
-
-    /**
-     * Initialize anonymous user session
-     */
-    async initAnonymousUser() {
+    async kakaoLogin() {
         try {
-            const response = await fetch(`${this.baseUrl}/auth/anonymous`, {
-                method: 'POST',
-                credentials: 'include'  // Include cookies
-            });
+            this.showStatus('카카오 로그인 중...');
             
+            // 카카오 로그인 URL 요청
+            const response = await fetch(`${this.apiBase}/auth/kakao/login`);
             if (!response.ok) {
-                throw new Error('Anonymous login failed');
+                throw new Error('카카오 로그인 URL 요청 실패');
             }
             
             const data = await response.json();
             
-            // Store token
-            this.setToken(data.access_token);
+            // 카카오 로그인 페이지로 리다이렉트
+            window.location.href = data.auth_url;
             
-            // Store user info as backup
-            localStorage.setItem('user_id', data.user_id);
-            localStorage.setItem('is_anonymous', 'true');
-            
-            return data;
         } catch (error) {
-            console.error('Anonymous login error:', error);
-            throw error;
+            this.showStatus('카카오 로그인 실패: ' + error.message, true);
         }
     }
 
-    /**
-     * Get Kakao authorization URL
-     */
-    async getKakaoAuthUrl() {
+    async anonymousLogin() {
         try {
-            const response = await fetch(`${this.baseUrl}/auth/kakao/url`);
+            this.showStatus('익명 로그인 중...');
             
-            if (!response.ok) {
-                throw new Error('Failed to get Kakao auth URL');
-            }
+            // 기존 refresh token 확인
+            let refreshToken = localStorage.getItem('refresh_token') || '';
             
-            const data = await response.json();
-            return data.authorization_url;
-        } catch (error) {
-            console.error('Kakao auth URL error:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Start Kakao OAuth flow
-     */
-    async startKakaoLogin() {
-        try {
-            const authUrl = await this.getKakaoAuthUrl();
-            
-            // Redirect to Kakao authorization page
-            window.location.href = authUrl;
-        } catch (error) {
-            console.error('Kakao login start error:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Handle Kakao OAuth callback with authorization code
-     */
-    async handleKakaoCallback(authorizationCode) {
-        try {
-            const response = await fetch(`${this.baseUrl}/auth/kakao/callback`, {
+            const response = await fetch(`${this.apiBase}/auth/anonymous-token`, {
                 method: 'POST',
-                headers: this.getAuthHeaders(),
-                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
-                    authorization_code: authorizationCode
+                    refresh_token: refreshToken
                 })
             });
-            
+
             if (!response.ok) {
-                throw new Error('Kakao callback failed');
+                throw new Error('익명 로그인 실패');
             }
+
+            const tokens = await response.json();
+            this.saveTokens(tokens);
+            this.showStatus('익명 로그인 성공!');
             
-            const data = await response.json();
-            
-            // Store new token
-            localStorage.setItem('is_anonymous', 'false');
-            localStorage.setItem('access_token', data.access_token);
-            localStorage.setItem('refresh_token', data.refresh_token);
-            
-            return data;
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+
         } catch (error) {
-            console.error('Kakao callback error:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get current user info
-     */
-    async getCurrentUser() {
-        try {
-            const response = await fetch(`${this.baseUrl}/auth/me`, {
-                headers: this.getAuthHeaders(),
-                credentials: 'include'
-            });
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    // No valid token, try anonymous login
-                    return await this.initAnonymousUser();
-                }
-                throw new Error('Failed to get user info');
-            }
-            
-            const data = await response.json();
-            
-            // Update localStorage
-            localStorage.setItem('user_id', data.user_id);
-            localStorage.setItem('is_anonymous', data.is_anonymous.toString());
-            
-            return data;
-        } catch (error) {
-            console.error('Get user error:', error);
-            // Try anonymous login as fallback
-            try {
-                return await this.initAnonymousUser();
-            } catch (fallbackError) {
-                console.error('Fallback anonymous login failed:', fallbackError);
-                throw error;
-            }
-        }
-    }
-
-    /**
-     * Verify current token
-     */
-    async verifyToken() {
-        try {
-            const response = await fetch(`${this.baseUrl}/auth/verify`, {
-                headers: this.getAuthHeaders(),
-                credentials: 'include'
-            });
-            
-            return response.ok;
-        } catch (error) {
-            console.error('Token verification error:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Logout user
-     */
-    async logout() {
-        try {
-            const response = await fetch(`${this.baseUrl}/auth/logout`, {
-                method: 'POST',
-                headers: this.getAuthHeaders(),
-                credentials: 'include'
-            });
-            
-            // Clear token and localStorage regardless of response
-            this.setToken(null);
-            localStorage.removeItem('user_id');
-            localStorage.removeItem('is_anonymous');
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Clear local data even if request fails
-            this.setToken(null);
-            localStorage.removeItem('user_id');
-            localStorage.removeItem('is_anonymous');
-            throw error;
-        }
-    }
-
-    /**
-     * Get user ID from localStorage (fallback)
-     */
-    getUserId() {
-        return localStorage.getItem('user_id');
-    }
-
-    /**
-     * Check if user is anonymous
-     */
-    isAnonymous() {
-        return localStorage.getItem('is_anonymous') !== 'false';
-    }
-
-    /**
-     * Extract authorization code from URL (for callback page)
-     */
-    getAuthCodeFromUrl() {
-        const url = new URL(window.location.href);
-        const params = new URLSearchParams(url.search);
-        
-        // Debug logging
-        console.log('Full URL:', window.location.href);
-        console.log('Search params:', url.search);
-        console.log('All params:', Object.fromEntries(params.entries()));
-        
-        const code = params.get('code');
-        const error = params.get('error');
-        const errorDescription = params.get('error_description');
-        
-        if (error) {
-            console.error('OAuth error:', error, errorDescription);
-            throw new Error(`Kakao OAuth error: ${error} - ${errorDescription}`);
-        }
-        
-        if (code) {
-            console.log('Authorization code found:', code.substring(0, 20) + '...');
-        } else {
-            console.warn('No authorization code found in URL');
-        }
-        
-        return code;
-    }
-
-    /**
-     * Check if current page is Kakao callback
-     */
-    isKakaoCallback() {
-        // Check if URL has authorization code parameter
-        const hasAuthCode = new URLSearchParams(window.location.search).has('code');
-        
-        // Check if URL has state parameter (Kakao OAuth includes this)
-        const hasState = new URLSearchParams(window.location.search).has('state');
-        
-        // Return true if has both code and state parameters (indicating OAuth callback)
-        return hasAuthCode && hasState;
-    }
-
-    /**
-     * Make authenticated API request
-     */
-    async apiRequest(endpoint, options = {}) {
-        const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}${endpoint}`;
-        
-        const config = {
-            headers: this.getAuthHeaders(),
-            credentials: 'include',
-            ...options
-        };
-
-        // Merge headers if provided in options
-        if (options.headers) {
-            config.headers = { ...config.headers, ...options.headers };
-        }
-
-        try {
-            const response = await fetch(url, config);
-            
-            // Handle 401 - token might be expired
-            if (response.status === 401) {
-                // Try to refresh token or re-authenticate
-                const isValid = await this.verifyToken();
-                if (!isValid) {
-                    // Token is invalid, try anonymous login
-                    await this.initAnonymousUser();
-                    // Retry the request with new token
-                    config.headers = this.getAuthHeaders();
-                    return await fetch(url, config);
-                }
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('API request error:', error);
-            throw error;
+            this.showStatus('익명 로그인 실패: ' + error.message, true);
         }
     }
 }
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    const authService = new AuthService();
+    
+    document.getElementById('kakaoLogin').addEventListener('click', () => {
+        authService.kakaoLogin();
+    });
+    
+    document.getElementById('anonymousLogin').addEventListener('click', () => {
+        authService.anonymousLogin();
+    });
+    
+    document.getElementById('directChat').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+    
+    // 이미 로그인된 경우 채팅 페이지로 이동
+    const accessToken = localStorage.getItem('access_token');
+    if (accessToken) {
+        window.location.href = 'index.html';
+    }
+});

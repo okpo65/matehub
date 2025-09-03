@@ -54,7 +54,7 @@ def create_access_token_for_user(user_id: int, is_anonymous: bool = False) -> st
 
 def create_tokens_for_user(user_id: int, is_anonymous: bool = False) -> dict:
     """사용자용 access_token과 refresh_token 생성"""
-    access_token = create_access_token_for_user(user_id, is_anonymous=False)
+    access_token = create_access_token_for_user(user_id, is_anonymous=is_anonymous)
     refresh_token = create_refresh_token()
     
     return {
@@ -87,6 +87,7 @@ async def get_current_user_or_anonymous(
     db: Session = Depends(get_db)
 ) -> int:
     """현재 사용자 또는 익명 사용자 정보 반환"""
+    print(f"Credentials: {credentials}")
     if not credentials:
         # 토큰이 없으면 익명 사용자로 처리
         raise HTTPException(
@@ -97,6 +98,7 @@ async def get_current_user_or_anonymous(
     
     token = credentials.credentials
     payload = verify_token(token)
+    print(f"Payload: {payload}")
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
@@ -105,13 +107,16 @@ async def get_current_user_or_anonymous(
         )
     
     user_id = payload.get("sub")
-    if not user_id:
+    try:
+        user_id = int(user_id)
+    except:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Invalid user token",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    return int(user_id)
+    
+    return user_id
 
 async def get_current_user_required(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -143,11 +148,14 @@ async def get_current_user_required(
         )
     
     user_id = payload.get("sub")
-    if not user_id:
+    try:
+        user_id = int(user_id)
+    except:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid user token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return int(user_id)
+    return user_id
+    

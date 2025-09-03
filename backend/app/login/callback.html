@@ -85,16 +85,8 @@
             console.error('OAuth error:', error);
             updateStatus('로그인 오류', '카카오 로그인 중 오류가 발생했습니다.', `오류: ${error}`, false, true);
             
-            if (window.opener) {
-                // Notify parent window of error
-                window.opener.postMessage({
-                    type: 'kakao_login_error',
-                    error: error
-                }, '*');
-            }
-            
             setTimeout(() => {
-                window.close();
+                window.location.replace('http://localhost:3000/index.html');
             }, 3000);
         } else if (code) {
             // Process the authorization code
@@ -104,15 +96,8 @@
             console.error('No authorization code received');
             updateStatus('로그인 오류', '인증 코드를 받지 못했습니다.', '', false, true);
             
-            if (window.opener) {
-                window.opener.postMessage({
-                    type: 'kakao_login_error',
-                    error: 'no_code'
-                }, '*');
-            }
-            
             setTimeout(() => {
-                window.close();
+                window.location.replace('http://localhost:3000/index.html');
             }, 3000);
         }
 
@@ -135,7 +120,8 @@
                     const loginData = {
                         access_token: data.access_token,
                         refresh_token: data.refresh_token,
-                        is_new_user: data.is_new_user
+                        is_new_user: data.is_new_user,
+                        kakao_id: data.kakao_id
                     };
 
                     updateStatus(
@@ -145,23 +131,16 @@
                         true
                     );
 
-                    // Store in localStorage for parent window to pick up
+                    // Store in localStorage
                     localStorage.setItem('access_token', loginData.access_token);
                     localStorage.setItem('refresh_token', loginData.refresh_token);
                     localStorage.setItem('is_anonymous', 'false');
+                    localStorage.setItem('kakao_id', loginData.kakao_id);
 
-                    if (window.opener) {
-                        // Notify parent window of success
-                        window.opener.postMessage({
-                            type: 'kakao_login_success',
-                            data: loginData
-                        }, '*');
-                    }
-
-                    // Close popup after showing success message
+                    // Redirect to main page
                     setTimeout(() => {
-                        window.close();
-                    }, 3000);
+                        window.location.replace('http://localhost:3000/index.html');
+                    }, 1500);
                 } else {
                     // Backend returned error
                     console.error('Backend error:', data);
@@ -173,16 +152,8 @@
                         true
                     );
                     
-                    if (window.opener) {
-                        window.opener.postMessage({
-                            type: 'kakao_login_error',
-                            error: data.error || 'backend_error',
-                            message: data.message
-                        }, '*');
-                    }
-                    
                     setTimeout(() => {
-                        window.close();
+                        window.location.replace('http://localhost:3000/index.html');
                     }, 3000);
                 }
             } catch (error) {
@@ -195,16 +166,8 @@
                     true
                 );
                 
-                if (window.opener) {
-                    window.opener.postMessage({
-                        type: 'kakao_login_error',
-                        error: 'request_failed',
-                        message: error.message
-                    }, '*');
-                }
-                
                 setTimeout(() => {
-                    window.close();
+                    window.location.replace('http://localhost:3000/index.html');
                 }, 3000);
             }
         }

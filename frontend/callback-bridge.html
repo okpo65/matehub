@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 처리중...</title>
+</head>
+<body>
+    <div>로그인 처리중...</div>
+    
+    <script>
+        // URL에서 로그인 데이터 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const kakaoId = urlParams.get('kakao_id');
+        const isNewUser = urlParams.get('is_new_user') === 'true';
+        
+        if (accessToken && refreshToken && kakaoId) {
+            // localStorage에 저장
+            localStorage.setItem('access_token', accessToken);
+            localStorage.setItem('refresh_token', refreshToken);
+            localStorage.setItem('kakao_id', kakaoId);
+            localStorage.setItem('is_anonymous', 'false');
+            
+            // 부모 창에 성공 데이터 전달
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'KAKAO_LOGIN_SUCCESS',
+                    data: {
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                        kakao_id: kakaoId,
+                        is_new_user: isNewUser
+                    }
+                }, 'http://localhost:3000');
+            }
+        } else {
+            // 에러 처리
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'KAKAO_LOGIN_ERROR',
+                    error: '로그인 데이터를 받지 못했습니다.'
+                }, 'http://localhost:3000');
+            }
+        }
+        
+        // 팝업 창 닫기
+        window.close();
+    </script>
+</body>
+</html>

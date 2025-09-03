@@ -12,6 +12,8 @@ from app.api.jwt_auth import (
 )
 from app.api.jwt_auth import REFRESH_TOKEN_EXPIRE_DAYS
 from datetime import timedelta
+from typing import Optional
+
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -27,19 +29,10 @@ class TokenResponse(BaseModel):
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
-class KakaoTokenRequest(BaseModel):
-    kakao_id: str
 
 class UserResponse(BaseModel):
-    id: int
-    name: str
-    email: str = None
-    nickname: str = None
-    kakao_id: str = None
+    kakao_id: Optional[int] = None
     is_anonymous: bool
-
-    class Config:
-        from_attributes = True
 
 
 @router.post("/anonymous-token", response_model=TokenResponse)
@@ -80,43 +73,43 @@ async def create_anonymous_token(
     )
 
 
-@router.post("/kakao-token", response_model=TokenResponse)
-async def create_kakao_user_token(
-    request: KakaoTokenRequest,
-    db: Session = Depends(get_db)
-):
-    """카카오 로그인 후 JWT 토큰 발급 (사용자 생성 또는 업데이트)"""
-    # 기존 사용자 확인
-    user = db.query(User).filter(User.kakao_id == request.kakao_id).first()
-    if user:
-        tokens = create_tokens_for_user(user.id, is_anonymous=False)
-        # 기존 사용자 정보 업데이트
-        user.is_anonymous = False
-        user.refresh_token = tokens["refresh_token"]
-        user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=30)
-        db.commit()
-        db.refresh(user)
-    else:
-        # 새 사용자 생성
-        user = User(
-            kakao_id=request.kakao_id,
-            is_anonymous=False,
-            is_active=True
-        )
-        tokens = create_tokens_for_user(user.id, is_anonymous=False)
-        user.refresh_token = tokens["refresh_token"]
-        user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=30)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+# @router.post("/kakao-token", response_model=TokenResponse)
+# async def create_kakao_user_token(
+#     request: KakaoTokenRequest,
+#     db: Session = Depends(get_db)
+# ):
+#     """카카오 로그인 후 JWT 토큰 발급 (사용자 생성 또는 업데이트)"""
+#     # 기존 사용자 확인
+#     user = db.query(User).filter(User.kakao_id == request.kakao_id).first()
+#     if user:
+#         tokens = create_tokens_for_user(user.id, is_anonymous=False)
+#         # 기존 사용자 정보 업데이트
+#         user.is_anonymous = False
+#         user.refresh_token = tokens["refresh_token"]
+#         user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=30)
+#         db.commit()
+#         db.refresh(user)
+#     else:
+#         # 새 사용자 생성
+#         user = User(
+#             kakao_id=request.kakao_id,
+#             is_anonymous=False,
+#             is_active=True
+#         )
+#         tokens = create_tokens_for_user(user.id, is_anonymous=False)
+#         user.refresh_token = tokens["refresh_token"]
+#         user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=30)
+#         db.add(user)
+#         db.commit()
+#         db.refresh(user)
     
-    return TokenResponse(
-        access_token=tokens["access_token"],
-        refresh_token=tokens["refresh_token"],
-        token_type="bearer",
-        user_type="authenticated",
-        user_id=user.id
-    )
+#     return TokenResponse(
+#         access_token=tokens["access_token"],
+#         refresh_token=tokens["refresh_token"],
+#         token_type="bearer",
+#         user_type="authenticated",
+#         user_id=user.id
+#     )
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -154,10 +147,21 @@ async def refresh_access_token(
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
-    current_user: User = Depends(get_current_user_required)
+    user_id: int = Depends(get_current_user_required),
+    db: Session = Depends(get_db)
 ):
     """현재 인증된 사용자 정보 조회"""
-    return current_user
+    print(f"User ID in me: {user_id}")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    print("User: !!!!", user.id, user.kakao_id)
+    kakao_id = user.kakao_id if user.kakao_id else None
+    return UserResponse(
+        kakao_id=kakao_id,
+        is_anonymous=user.is_anonymous
+    )
 
 @router.get("/validate")
 async def validate_token(

@@ -81,7 +81,7 @@ async def get_chat_history(
     """Get the chat history"""
     chat_service = ChatService(db)
     chat_history = chat_service.get_story_chat_history_by_id(story_chat_history_id)
-    
+
     if chat_history.user_id != user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -126,12 +126,11 @@ async def chat_with_llm(
         if not request.message or not request.message.strip():
             raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        character_id = request.character_id or 1
         story_id = request.story_id or 1
         model = request.model or "gemini-2.0-flash-lite"
         provider = request.provider or "gemini"
         
-        print(f"Using IDs - User: {user_id}, Character: {character_id}, Story: {story_id}")
+        print(f"Using IDs - User: {user_id}, Story: {story_id}")
         print(f"Model: {model}, Provider: {provider}")
         print(f"Request model: {request.model}")
         print(f"Final model: {model}")
@@ -142,10 +141,11 @@ async def chat_with_llm(
             print(f"Failed to initialize ChatService: {e}")
             raise HTTPException(status_code=500, detail="Database connection failed")
 
+        story = chat_service.get_story(story_id)
         try:
             chat_service.add_message(
                 user_id=user_id,
-                character_id=character_id,
+                character_id=story.character_id,
                 story_id=story_id,
                 message=request.message,
                 character_image_id=None,
@@ -170,7 +170,7 @@ async def chat_with_llm(
 
         messages = []
         
-        character = chat_service.get_character(character_id)
+        character = chat_service.get_character(story.character_id)
         messages.append({"role": "user", "content": f"{character.system_prompt}\n\n이제부터 위의 캐릭터로 완벽하게 연기하며 대화하세요."})
         messages.append({"role": "model", "content": f"네, 알겠습니다. 지금부터 {character.description} 역할로 대화하겠습니다."})
 
@@ -188,7 +188,7 @@ async def chat_with_llm(
 
         story_chat_history = chat_service.add_message(
             user_id=user_id,
-            character_id=character_id,
+            character_id=story.character_id,
             story_id=story_id,
             message="",
             character_image_id=None,

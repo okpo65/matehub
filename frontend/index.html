@@ -1,154 +1,280 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MateHub Chat Interface</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>MateHub - AI 채팅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+        }
+        
+        .header {
+            background: white;
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn-kakao {
+            padding: 8px 16px;
+            background: #fee500;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .btn-logout {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        
+        .story-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        
+        .story-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .story-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .story-item.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .story-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .story-character {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .story-item.active .story-character {
+            color: #ddd;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 1rem;
+            background: #667eea;
+            color: white;
+            text-align: center;
+        }
+        
+        .messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+        }
+        
+        .message.sent {
+            justify-content: flex-end;
+        }
+        
+        .message.received {
+            justify-content: flex-start;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message.sent .message-content {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message.received .message-content {
+            background: #e9ecef;
+            color: #333;
+        }
+        
+        .input-area {
+            padding: 1rem;
+            border-top: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .send-btn {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+    <script src="kakao-auth.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Left Sidebar - Configuration Panel -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h2>Chat Configuration</h2>
-                <button id="toggleSidebar" class="toggle-btn">
-                    <span class="toggle-icon">◀</span>
-                </button>
-            </div>
-            
-            <div class="sidebar-content">
-                <!-- Login Section -->
-                <div class="config-section">
-                    <h3>Login Status</h3>
-                    <div class="login-status" id="loginStatus">
-                        <div class="user-info" id="userInfo" style="display: none;">
-                            <span class="user-name" id="userName">Loading...</span>
-                            <button id="logoutBtn" class="logout-btn">Logout</button>
-                        </div>
-                        <div class="login-buttons" id="loginButtons">
-                            <button id="kakaoLoginBtn" class="kakao-login-btn">
-                                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDJDNS4wMjk0NCAyIDEgNS4xMzQwMSAxIDguOTk5OTlDMSAxMS4zNjU5IDIuMzY1OTQgMTMuNDMzOSA0LjQ0Mzc1IDE0LjU2MjVMMy41NjI1IDE3LjQzNzVDMy40Mzc1IDE3LjgxMjUgMy44NzUgMTguMDYyNSA0LjE4NzUgMTcuODEyNUw3LjU2MjUgMTUuNjI1QzguMzc1IDE1Ljg3NSA5LjE4NzUgMTYgMTAgMTZDMTQuOTcwNiAxNiAxOSAxMi44NjYgMTkgOC45OTk5OUMxOSA1LjEzNDAxIDE0Ljk3MDYgMiAxMCAyWiIgZmlsbD0iIzM5MUY0NyIvPgo8L3N2Zz4K" alt="Kakao">
-                                카카오 로그인
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ID Selection Table -->
-                <div class="config-section">
-                    <h3>ID Selection</h3>
-                    <div class="id-table-container">
-                        <table class="id-table">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Current ID</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>User ID</td>
-                                    <td><span id="currentUserId">x</span></td>
-                                    <td>
-                                        <input type="number" id="userIdInput" min="1" value="1">
-                                        <button onclick="updateId('user')">Update</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Character ID</td>
-                                    <td><span id="currentCharacterId">x</span></td>
-                                    <td>
-                                        <input type="number" id="characterIdInput" min="1" value="2">
-                                        <button onclick="updateId('character')">Update</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Story ID</td>
-                                    <td><span id="currentStoryId">x</span></td>
-                                    <td>
-                                        <input type="number" id="storyIdInput" min="1" value="2">
-                                        <button onclick="updateId('story')">Update</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Model Configuration -->
-                <div class="config-section">
-                    <h3>Model Settings</h3>
-                    <div class="config-row">
-                        <label for="modelSelect">Model:</label>
-                        <select id="modelSelect">
-                            <option value="">Loading models...</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- API Endpoints -->
-                <div class="config-section">
-                    <h3>API Actions</h3>
-                    <div class="api-buttons">
-                        <button id="testConnectionBtn" class="api-btn">Test Connection</button>
-                        <button id="clearChatBtn" class="api-btn">Clear Chat</button>
-                        <button id="exportChatBtn" class="api-btn">Export Chat</button>
-                    </div>
-                </div>
+    <div class="header">
+        <div class="logo">🎭 MateHub</div>
+        <div class="user-info">
+            <span id="userInfo">로딩 중...</span>
+            <button id="kakaoLoginBtn" class="btn-kakao" onclick="handleKakaoLogin()" style="display: none;">카카오 로그인</button>
+            <button id="logoutBtn" class="btn-logout">로그아웃</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-header">스토리 선택</div>
+            <div id="storyList" class="story-list">
+                <div class="status">스토리를 불러오는 중...</div>
             </div>
         </div>
-
-        <!-- Main Content Area -->
-        <div class="main-content">
-            <!-- Chat Interface -->
-            <div class="chat-container">
-                <div class="chat-header">
-                    <h1>MateHub AI Chat</h1>
-                    <div class="header-controls">
-                        <div class="current-config">
-                            <span class="config-label">User: <span id="headerUserId">1</span></span>
-                            <span class="config-label">Character: <span id="headerCharacterId">2</span></span>
-                            <span class="config-label">Story: <span id="headerStoryId">2</span></span>
-                        </div>
-                        <div class="status-indicator">
-                            <span id="status-dot" class="status-dot"></span>
-                            <span id="status-text">Connecting...</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Scroll Loading Indicator -->
-                    <div class="scroll-loading-indicator" id="scrollLoadingIndicator" style="display: none;">
-                        <div style="text-align: center; padding: 10px; color: #666; font-size: 0.9em;">
-                            📥 Loading older messages...
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="chat-input-container">
-                    <form id="messageForm" class="message-form">
-                        <input 
-                            type="text" 
-                            id="messageInput" 
-                            placeholder="Type your message..." 
-                            autocomplete="off"
-                            required
-                        >
-                        <button type="submit" id="sendButton">Send</button>
-                    </form>
-                </div>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <h3 id="currentStoryTitle">스토리를 선택해주세요</h3>
+            </div>
+            
+            <div id="messages" class="messages"></div>
+            
+            <div class="status" id="status">스토리를 선택하고 메시지를 입력해보세요!</div>
+            
+            <div class="input-area">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    class="message-input" 
+                    placeholder="메시지를 입력하세요..."
+                    maxlength="500"
+                    disabled
+                >
+                <button id="sendBtn" class="send-btn" disabled>전송</button>
             </div>
         </div>
     </div>
 
-    <script src="api-service.js"></script>
-    <script src="chat-client.js"></script>
-    <script src="script.js"></script>
+    <script src="api-service-auth.js"></script>
+    <script src="auto-auth.js"></script>
+    <script src="chat.js"></script>
     
-    <!-- Kakao Auth Client - Simple Version -->
-    <script src="kakao-auth.js"></script>
+    <script>
+        // 카카오 로그인 설정
+        const kakaoAuth = new KakaoAuth(
+            'af8d24adce09ccf9de9d06fdd4e342cc',
+            'http://localhost:8000/auth/kakao/callback/page'
+        );
+        
+        async function handleKakaoLogin() {
+            try {
+                const loginData = await kakaoAuth.login();
+                console.log('카카오 로그인 데이터:', loginData);
+                
+                // 로그인 성공 처리
+                alert(`로그인 성공! ${loginData.is_new_user ? '새 사용자' : '기존 사용자'}`);
+                
+                // 페이지 새로고침하여 로그인 상태 반영
+                window.location.reload();
+            } catch (error) {
+                console.error('카카오 로그인 실패:', error);
+                alert('로그인 실패: ' + error.message);
+            }
+        }
+    </script>
 </body>
 </html>
