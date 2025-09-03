@@ -53,8 +53,8 @@ class ApiService {
                     };
                     return fetch(url, { ...options, headers: newHeaders });
                 } else {
-                    // 토큰 갱신 실패 시 로그인 페이지로
-                    window.location.href = 'auth.html';
+                    // 토큰 갱신 실패 시 로그아웃 처리
+                    this.logout();
                     return;
                 }
             }
