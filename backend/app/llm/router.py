@@ -135,17 +135,14 @@ async def chat_with_llm(
         print(f"Request model: {request.model}")
         print(f"Final model: {model}")
         
-        try:
-            chat_service = ChatService()
-        except Exception as e:
-            print(f"Failed to initialize ChatService: {e}")
-            raise HTTPException(status_code=500, detail="Database connection failed")
-
+        chat_service = ChatService(db)
         story = chat_service.get_story(story_id)
+        character = story.character
+        
         try:
             chat_service.add_message(
                 user_id=user_id,
-                character_id=story.character_id,
+                character_id=character.id,
                 story_id=story_id,
                 message=request.message,
                 character_image_id=None,
@@ -170,25 +167,22 @@ async def chat_with_llm(
 
         messages = []
         
-        character = chat_service.get_character(story.character_id)
+        character = chat_service.get_character(character.id)
         messages.append({"role": "user", "content": f"{character.system_prompt}\n\n이제부터 위의 캐릭터로 완벽하게 연기하며 대화하세요."})
         messages.append({"role": "model", "content": f"네, 알겠습니다. 지금부터 {character.description} 역할로 대화하겠습니다."})
 
-        try:
-            chat_history = chat_service.get_user_chat_history(user.id, story_id, max_count=5)
-            if chat_history:
-                for chat in chat_history: 
-                    role = "user" if chat.is_user_message else "model"
-                    messages.append({"role": role, "content": chat.contents})
-                print(f"Added {len(chat_history)} messages from chat history")
-        except Exception as e:
-            print(f"Failed to get chat history: {e}")
-
+        chat_history = chat_service.get_user_chat_history(user_id, story_id, max_count=5)
+        if len(chat_history) > 0:
+            for chat in chat_history: 
+                role = "user" if chat.is_user_message else "model"
+                messages.append({"role": role, "content": chat.contents})
+            print(f"Added {len(chat_history)} messages from chat history")
+            
         messages.append({"role": "user", "content": request.message})        
 
         story_chat_history = chat_service.add_message(
             user_id=user_id,
-            character_id=story.character_id,
+            character_id=character.id,
             story_id=story_id,
             message="",
             character_image_id=None,

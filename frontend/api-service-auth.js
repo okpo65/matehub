@@ -134,6 +134,11 @@ class ApiService {
         return response.json();
     }
 
+    async getKakaoAuthUrl() {
+        const response = await this.apiCall('/auth/kakao/login');
+        return response.json();
+    }
+
     // 로그아웃
     logout() {
         localStorage.removeItem('access_token');

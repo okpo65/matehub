@@ -70,6 +70,7 @@ class Story(BaseModel):
     background_image_url = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     is_popular = Column(Boolean, default=False)
+    rank = Column(Integer, nullable=False)
 
     # Relationships
     character = relationship("Character", back_populates="stories")
@@ -81,8 +82,6 @@ class Character(BaseModel):
     
     description = Column(Text, nullable=False)
     system_prompt = Column(Text, nullable=False)
-    is_popular = Column(Boolean, default=False)
-    rank = Column(Integer, nullable=False)
     tag_list = Column(String(255), nullable=False)
     main_image_url = Column(String(255), nullable=False)
 

@@ -156,7 +156,7 @@ async def get_current_user_info(
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
-    print("User: !!!!", user.id, user.kakao_id)
+    print("User: ", user.id, user.kakao_id)
     kakao_id = user.kakao_id if user.kakao_id else None
     return UserResponse(
         kakao_id=kakao_id,

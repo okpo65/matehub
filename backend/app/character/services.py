@@ -20,7 +20,7 @@ class CharacterService:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.db = get_db_session()        
 
-    def get_characters(self, limit: Optional[int] = None, include_inactive: bool = False) -> List[CharacterWithStoriesDB]:
+    def get_characters(self, limit: Optional[int] = None, include_inactive: bool = False) -> List[CharacterWithStoriesSchema]:
         """Get list of characters with their stories"""
         query = (
             self.db.query(Character)
