@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스토리 생성 - MateHub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>콘텐츠 생성</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('story')">스토리 생성</div>
+            <div class="tab" onclick="switchTab('character')">캐릭터 생성</div>
+        </div>
+        
+        <!-- 스토리 생성 탭 -->
+        <div id="story-tab" class="tab-content active">
+            <form id="storyForm">
+                <div class="form-group">
+                    <label for="storyTitle">스토리 제목</label>
+                    <input type="text" id="storyTitle" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="storyLine">스토리라인</label>
+                    <textarea id="storyLine" name="storyline" required placeholder="스토리의 주요 줄거리를 입력하세요"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="storyDescription">스토리 설명</label>
+                    <textarea id="storyDescription" name="description" required placeholder="스토리에 대한 자세한 설명을 입력하세요"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="backgroundImage">배경 이미지 URL (선택사항)</label>
+                    <input type="url" id="backgroundImage" name="background_image_url" placeholder="https://example.com/image.jpg">
+                </div>
+                
+                <div class="form-group">
+                    <label for="characterSelect">캐릭터 선택 (필수)</label>
+                    <select id="characterSelect" name="character_id" required>
+                        <option value="">캐릭터를 선택하세요</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn">스토리 생성</button>
+                <button type="button" class="btn btn-secondary" onclick="goBack()">취소</button>
+            </form>
+        </div>
+        
+        <!-- 캐릭터 생성 탭 -->
+        <div id="character-tab" class="tab-content">
+            <form id="characterForm">
+                <div class="form-group">
+                    <label for="characterName">캐릭터 이름</label>
+                    <input type="text" id="characterName" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="characterDescription">캐릭터 설명</label>
+                    <textarea id="characterDescription" name="description" required placeholder="캐릭터의 외모, 배경 등을 설명하세요"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="systemPrompt">시스템 프롬프트</label>
+                    <textarea id="systemPrompt" name="system_prompt" required placeholder="AI가 이 캐릭터를 연기할 때 사용할 지침을 입력하세요"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="characterTags">태그 (선택사항)</label>
+                    <input type="text" id="characterTags" name="tag_list" placeholder="태그를 쉼표로 구분하여 입력">
+                </div>
+                
+                <button type="submit" class="btn">캐릭터 생성</button>
+                <button type="button" class="btn btn-secondary" onclick="goBack()">취소</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // 탭 전환
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        // 캐릭터 목록 로드
+        async function loadCharacters() {
+            try {
+                const response = await fetch('http://localhost:8000/characters/');
+                const characters = await response.json();
+                
+                const select = document.getElementById('characterSelect');
+                // 기존 옵션들 제거 (첫 번째 기본 옵션 제외)
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+                
+                // API가 배열을 직접 반환하므로 characters를 직접 사용
+                if (Array.isArray(characters)) {
+                    characters.forEach(character => {
+                        const option = document.createElement('option');
+                        option.value = character.id;
+                        // name 필드 사용
+                        const characterName = character.name || `캐릭터 ${character.id}`;
+                        option.textContent = characterName;
+                        select.appendChild(option);
+                    });
+                    console.log(`${characters.length}개의 캐릭터를 로드했습니다.`);
+                } else {
+                    console.error('캐릭터 데이터가 배열이 아닙니다:', characters);
+                }
+            } catch (error) {
+                console.error('캐릭터 목록 로드 실패:', error);
+            }
+        }
+        
+        // 스토리 생성
+        document.getElementById('storyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const characterId = formData.get('character_id');
+            
+            if (!characterId) {
+                alert('캐릭터를 선택해주세요.');
+                return;
+            }
+            
+            const data = {
+                title: formData.get('title'),
+                storyline: formData.get('storyline'),
+                description: formData.get('description'),
+                background_image_url: formData.get('background_image_url') || "",
+                character_id: parseInt(characterId)
+            };
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('http://localhost:8000/stories/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('스토리가 성공적으로 생성되었습니다!');
+                    window.location.href = 'index.html';
+                } else {
+                    alert('스토리 생성 실패: ' + result.detail);
+                }
+            } catch (error) {
+                console.error('스토리 생성 오류:', error);
+                alert('스토리 생성 중 오류가 발생했습니다.');
+            }
+        });
+        
+        // 캐릭터 생성
+        document.getElementById('characterForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                system_prompt: formData.get('system_prompt'),
+                tag_list: formData.get('tag_list') || ""
+            };
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('http://localhost:8000/stories/character/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('캐릭터가 성공적으로 생성되었습니다!');
+                    loadCharacters(); // 캐릭터 목록 새로고침
+                    document.getElementById('characterForm').reset();
+                } else {
+                    alert('캐릭터 생성 실패: ' + result.detail);
+                }
+            } catch (error) {
+                console.error('캐릭터 생성 오류:', error);
+                alert('캐릭터 생성 중 오류가 발생했습니다.');
+            }
+        });
+        
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+        
+        // 페이지 로드시 캐릭터 목록 로드
+        loadCharacters();
+    </script>
+</body>
+</html>

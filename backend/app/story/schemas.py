@@ -139,4 +139,17 @@ class StoryListResponse(BaseSchema):
 class StoryDetailResponse(StoryWithRelationsSchema):
     pass
 
+class StoryCreate(BaseModel):
+    character_id: int
+    storyline: str
+    description: str
+    background_image_url: str = ""
+
+class CharacterCreate(BaseModel):   
+    name: str
+    description: str
+    system_prompt: str
+    tag_list: str = ""
+    main_image_url: str = ""
+
 StoryChatHistoryWithRelationsSchema.model_rebuild()

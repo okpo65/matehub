@@ -14,12 +14,15 @@ from app.character.schemas import (
 from app.database.services import StoryService, RelationshipQueryService
 from .schemas import (
     CreateStoryUserMatchRequest,
-    StoryUserMatchCreateResponse
+    StoryUserMatchCreateResponse,
+    StoryCreate,
+    CharacterCreate
 )
-from app.database.models import StoryUserMatch as StoryUserMatchModel, Story, User
+from app.database.models import StoryUserMatch as StoryUserMatchModel, Story, User, Character
 
 
 router = APIRouter(prefix="/stories", tags=["stories"])
+
 
 @router.get("/", response_model=StoryListResponse)
 async def get_stories(
@@ -166,3 +169,41 @@ async def update_story_progress(
         "progress": match.progress,
         "intimacy": match.intimacy
     }
+
+
+@router.post("/create")
+async def create_story(
+    story_data: StoryCreate,
+    user_id: int = Depends(get_current_user_or_anonymous),
+    db: Session = Depends(get_db)
+):
+    story = Story(
+        character_id=story_data.character_id,
+        storyline=story_data.storyline,
+        description=story_data.description,
+        background_image_url=story_data.background_image_url,
+    )
+
+    db.add(story)
+    db.commit()
+    db.refresh(story)
+
+    return story
+
+@router.post("/character/create")
+async def create_character(
+    character_data: CharacterCreate,
+    user_id: int = Depends(get_current_user_or_anonymous),
+    db: Session = Depends(get_db)
+):
+    character = Character(
+        name=character_data.name,
+        description=character_data.description,
+        system_prompt=character_data.system_prompt,
+        tag_list=character_data.tag_list,
+        main_image_url=character_data.main_image_url
+    )
+    db.add(character)
+    db.commit()
+    db.refresh(character)
+    return character

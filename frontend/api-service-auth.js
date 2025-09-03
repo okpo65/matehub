@@ -124,7 +124,7 @@ class ApiService {
     }
 
     async getCharacterStories(characterId) {
-        const response = await this.apiCall(`/stories/character/${characterId}`);
+        const response = await this.apiCall(`/characters/profile/${characterId}`);
         return response.json();
     }
 
@@ -143,6 +143,10 @@ class ApiService {
     logout() {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = 'auth.html';
+        localStorage.removeItem('kakao_id');
+        localStorage.setItem('is_anonymous', 'true');
+        
+        // 페이지 새로고침하여 로그아웃 상태 반영
+        window.location.reload();
     }
 }

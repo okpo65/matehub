@@ -53,10 +53,9 @@ class TimestampMixin(BaseModel):
 
 # Character Schemas
 class CharacterBaseSchema(BaseSchema):
+    name: str
     description: str
     system_prompt: str
-    is_popular: bool = False
-    rank: int
     tag_list: str
     main_image_url: str
     

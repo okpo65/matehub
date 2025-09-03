@@ -19,8 +19,6 @@ class CharacterService:
                 load_only(
                     Character.id,
                     Character.description,
-                    Character.is_popular,
-                    Character.rank,
                     Character.tag_list,
                 ),
                 selectinload(Character.stories).load_only(
@@ -30,7 +28,6 @@ class CharacterService:
                     Story.background_image_url
                 )
             )
-            .order_by(Character.rank)
         )
             
         characters = query.all()

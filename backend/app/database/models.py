@@ -17,37 +17,21 @@ class User(BaseModel):
     __tablename__ = "users"
     
     is_active = Column(Boolean, default=True)
-    # Authentication fields - Kakao only
-    anonymous_user_id = Column(String(36), nullable=True, unique=True)  # UUID for anonymous users
-    kakao_id = Column(String(255), nullable=True, unique=True)  # Kakao user ID
+    kakao_id = Column(String(255), nullable=True, unique=True)
     is_anonymous = Column(Boolean, default=True)
+
+    kakao_access_token = Column(Text, nullable=True)
+    kakao_refresh_token = Column(Text, nullable=True)
+    kakao_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     
-    # OAuth tokens
-    kakao_access_token = Column(Text, nullable=True)  # Kakao access token
-    kakao_refresh_token = Column(Text, nullable=True)  # Kakao refresh token
-    kakao_token_expires_at = Column(DateTime(timezone=True), nullable=True)  # Token expiration time
-    
-    # JWT refresh token
-    refresh_token = Column(Text, nullable=True)  # JWT refresh token
+    refresh_token = Column(Text, nullable=True)
     refresh_token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
     messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
     profiles = relationship("Profile", back_populates="user", cascade="all, delete-orphan")
     story_matches = relationship("StoryUserMatch", back_populates="user", cascade="all, delete-orphan")
     chat_histories = relationship("StoryChatHistory", back_populates="user", cascade="all, delete-orphan")
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
 
-class UserSession(BaseModel):
-    __tablename__ = "user_sessions"
-    
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    session_id = Column(String(36), nullable=False, unique=True)  # UUID for session
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    is_active = Column(Boolean, default=True)
-    
-    # Relationships
-    user = relationship("User", back_populates="sessions")
 
 class Profile(BaseModel):
     __tablename__ = "profiles"
@@ -58,7 +42,6 @@ class Profile(BaseModel):
     thumbnail_url = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
 
-    # Relationships
     user = relationship("User", back_populates="profiles")
 
 class Story(BaseModel):
@@ -70,7 +53,7 @@ class Story(BaseModel):
     background_image_url = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     is_popular = Column(Boolean, default=False)
-    rank = Column(Integer, nullable=False)
+    rank = Column(Integer, nullable=False, default=0)
 
     # Relationships
     character = relationship("Character", back_populates="stories")
@@ -80,6 +63,7 @@ class Story(BaseModel):
 class Character(BaseModel):
     __tablename__ = "characters"
     
+    name = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     system_prompt = Column(Text, nullable=False)
     tag_list = Column(String(255), nullable=False)
